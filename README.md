@@ -34,7 +34,7 @@ Sem `BLOB_READ_WRITE_TOKEN`, os arquivos vão para `.storage/` no disco. Com `DE
 
 1. Criar o projeto ligado ao repositório GitHub.
 2. Adicionar Neon (Postgres) e um Blob store **privado** pelo Marketplace da Vercel — as variáveis `DATABASE_URL`, `DATABASE_URL_UNPOOLED` e `BLOB_READ_WRITE_TOKEN` entram sozinhas.
-3. Registrar o app no Entra ID da Proative (single tenant), redirect URI `https://<domínio>/api/auth/callback/microsoft-entra-id`, e preencher `AUTH_MICROSOFT_ENTRA_ID_*` e `AUTH_SECRET`.
+3. App no Entra ID da Proative: **Proative 2.0 - Portal** (single tenant, client ID `8c484b4a-4e74-4f5a-b027-99a2197e27e6`), redirect URI `https://proative-2-0.vercel.app/api/auth/callback/microsoft-entra-id`. Segredo "Vercel producao" expira em **20/10/2028** — gerar outro em Certificados e segredos e atualizar `AUTH_MICROSOFT_ENTRA_ID_SECRET` antes disso. Ao trocar de domínio, adicionar o novo redirect URI no app.
 4. `INITIAL_ADMIN_EMAILS` com o(s) admin(s) inicial(is).
 5. Rodar `npx prisma migrate deploy` e `npm run db:seed` contra o banco de produção.
 
