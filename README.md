@@ -42,4 +42,4 @@ Sem `BLOB_READ_WRITE_TOKEN`, os arquivos vão para `.storage/` no disco. Com `DE
 
 - **Uploads grandes**: na Vercel o corpo de uma requisição é limitado a ~4,5 MB. Áudios do Plaud e documentos maiores precisam de upload direto do navegador ao Blob (`@vercel/blob/client`) — próximo passo.
 - **Transcrição + Claude**: escolher o serviço de speech-to-text (AssemblyAI / Deepgram / Azure) e definir a chave da API do Claude.
-- **Identidade visual**: cores em `src/app/globals.css` (`--brand`, `--brand-accent`); falta o manual de marca.
+- **Identidade visual**: tokens do brandbook Proative 2.0 em `src/app/globals.css` (`@theme`: `accent`, `ink`, `line`, `surface`…), fontes Source Sans 3 (títulos) e Open Sans (texto), logotipo em `src/components/logo.tsx`.

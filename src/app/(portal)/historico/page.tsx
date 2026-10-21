@@ -34,11 +34,11 @@ export default async function HistoricoPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Histórico" subtitle="Linha do tempo: quem fez o quê e quando." />
       {events.length === 0 ? <Empty>Nada registrado ainda.</Empty> : (
-        <ol className="relative space-y-3 border-l border-slate-200 pl-5">
+        <ol className="relative space-y-3 border-l border-line pl-5">
           {events.slice(0, take).map((e) => (
             <li key={e.id} className="text-sm">
-              <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-white bg-[var(--brand)]" />
-              <div className="text-xs text-slate-500">{fmtDateTime(e.createdAt)} · {e.actor?.name ?? e.actor?.email ?? "Sistema"}</div>
+              <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-surface bg-accent" />
+              <div className="text-xs text-ink-3">{fmtDateTime(e.createdAt)} · {e.actor?.name ?? e.actor?.email ?? "Sistema"}</div>
               {LINK[e.entityType] ? <Link href={LINK[e.entityType] + e.entityId} className="hover:underline">{e.summary}</Link> : e.summary}
             </li>
           ))}

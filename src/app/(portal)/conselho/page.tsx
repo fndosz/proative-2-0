@@ -8,7 +8,7 @@ export default async function ConselhoPage() {
     <>
       <PageHeader title="Conselho consultivo" subtitle="Fase 2" />
       <Card>
-        <p className="text-sm text-slate-600">Membros, calendário e recomendações do conselho entram na fase 2. Até lá, registre as reuniões do conselho em <Link href="/reunioes/nova" className="underline">Reuniões e atas</Link> com o tipo “Conselho consultivo”.</p>
+        <p className="text-sm text-ink-2">Membros, calendário e recomendações do conselho entram na fase 2. Até lá, registre as reuniões do conselho em <Link href="/reunioes/nova" className="underline">Reuniões e atas</Link> com o tipo “Conselho consultivo”.</p>
       </Card>
     </>
   );

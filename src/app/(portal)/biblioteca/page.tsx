@@ -26,7 +26,7 @@ export default async function BibliotecaPage({ searchParams }: { searchParams: P
   return (
     <>
       <PageHeader title="Biblioteca" subtitle="Documentos com versões, etiquetas e vínculos a reuniões e ações." actions={user.role !== "LEITOR" && <ButtonLink href="/biblioteca/novo">Enviar documento</ButtonLink>} />
-      <form className="mb-4 flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3">
+      <form className="mb-4 flex flex-wrap gap-2 rounded-brand border border-line bg-surface p-3">
         <input name="q" defaultValue={q} placeholder="Buscar por título, descrição ou etiqueta" className={`${input} min-w-48 flex-1`} />
         <select name="diretoria" defaultValue={diretoria ?? ""} className={`${input} w-auto`}>
           <option value="">Todas as diretorias</option>
@@ -36,21 +36,21 @@ export default async function BibliotecaPage({ searchParams }: { searchParams: P
         {tag && <input type="hidden" name="tag" value={tag} />}
         <button className={btnSecondary}>Buscar</button>
       </form>
-      {tag && <p className="mb-3 text-sm">Etiqueta: <Badge>{tag}</Badge> <Link href="/biblioteca" className="text-slate-500 underline">limpar</Link></p>}
+      {tag && <p className="mb-3 text-sm">Etiqueta: <Badge>{tag}</Badge> <Link href="/biblioteca" className="text-ink-3 underline">limpar</Link></p>}
       {docs.length === 0 ? (
         <Empty>Nenhum documento encontrado.</Empty>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-brand border border-line bg-surface">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+            <thead className="bg-surface-2 text-left font-display text-[11px] font-semibold uppercase tracking-[.06em] text-ink-3">
               <tr><th className="px-4 py-2">Documento</th><th>Diretoria</th><th>Etiquetas</th><th>Versão</th><th>Atualizado</th></tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-grid">
               {docs.map((d) => (
-                <tr key={d.id} className="hover:bg-slate-50">
+                <tr key={d.id} className="hover:bg-surface-2">
                   <td className="px-4 py-2">
                     <Link href={`/biblioteca/${d.id}`} className="font-medium hover:underline">{d.title}</Link>
-                    {d.restricted && <Badge className="ml-2 bg-amber-100 text-amber-800">restrito</Badge>}
+                    {d.restricted && <Badge className="ml-2 bg-warning/15 text-s6">restrito</Badge>}
                   </td>
                   <td>{d.directorate?.name ?? "Geral"}</td>
                   <td className="space-x-1">{d.tags.map((t) => <Link key={t} href={`/biblioteca?tag=${encodeURIComponent(t)}`}><Badge>{t}</Badge></Link>)}</td>

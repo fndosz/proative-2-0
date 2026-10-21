@@ -1,13 +1,62 @@
 @import "tailwindcss";
 
+/* Identidade Proative (brandbook 2.0): fundo F7F7F7, vermelho EB0029 como cor de marca,
+   cinzas 373D42 / 565D63 / 787F84, Source Sans 3 para títulos e Open Sans para texto. */
+@theme {
+  --color-bg: #f7f7f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #eff0f1;
+  --color-ink: #373d42;
+  --color-ink-2: #565d63;
+  --color-ink-3: #787f84;
+  --color-line: #e2e4e6;
+  --color-grid: #ecedee;
+  --color-accent: #eb0029;
+  --color-accent-ink: #c80023;
+  --color-accent-soft: #fde5e9;
+  --color-s2: #1c93aa;
+  --color-s3: #d94a26;
+  --color-s4: #44883e;
+  --color-s5: #e0607e;
+  --color-s6: #d99a00;
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-serious: #ec835a;
+  --color-critical: #d03b3b;
+
+  --font-sans: var(--font-body), "Open Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-display), "Source Sans 3", "Source Sans Pro", "Segoe UI", system-ui, sans-serif;
+
+  --radius-brand: 10px;
+}
+
 :root {
-  /* Identidade visual — ajustável em Administração */
-  --brand: #0f3d5e;
-  --brand-accent: #f39200;
+  --brand: #eb0029;
+  --brand-ink: #c80023;
 }
 
 body {
-  background: #f6f7f9;
-  color: #0f172a;
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+  letter-spacing: 0.005em;
+}
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* Grafismo hexagonal do brandbook, usado no topo do login */
+.hex-grafismo {
+  background-color: var(--color-accent);
+  background-image:
+    linear-gradient(30deg, transparent 48%, rgba(255,255,255,.08) 49%, rgba(255,255,255,.08) 51%, transparent 52%),
+    linear-gradient(150deg, transparent 48%, rgba(255,255,255,.08) 49%, rgba(255,255,255,.08) 51%, transparent 52%),
+    linear-gradient(90deg, transparent 48%, rgba(255,255,255,.08) 49%, rgba(255,255,255,.08) 51%, transparent 52%);
+  background-size: 56px 97px;
 }

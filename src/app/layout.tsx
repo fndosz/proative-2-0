@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Open_Sans, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const body = Open_Sans({ subsets: ["latin"], weight: ["300", "400", "600"], variable: "--font-body" });
+const display = Source_Sans_3({ subsets: ["latin"], weight: ["400", "600", "700"], style: ["normal", "italic"], variable: "--font-display" });
 
 export const metadata: Metadata = {
   title: "Proative 2.0",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} antialiased`}>{children}</body>
+      <body className={`${body.variable} ${display.variable} antialiased`}>{children}</body>
     </html>
   );
 }

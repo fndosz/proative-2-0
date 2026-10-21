@@ -44,14 +44,14 @@ export default async function AcoesPage({ searchParams }: { searchParams: Promis
         title="Plano de ação"
         actions={
           <>
-            <Link href={qs({ view: "lista" })} className={view === "lista" ? "rounded-lg bg-slate-900 px-3 py-2 text-sm text-white" : btnSecondary}>Lista</Link>
-            <Link href={qs({ view: "kanban" })} className={view === "kanban" ? "rounded-lg bg-slate-900 px-3 py-2 text-sm text-white" : btnSecondary}>Kanban</Link>
+            <Link href={qs({ view: "lista" })} className={view === "lista" ? "rounded-lg bg-ink px-3 py-2 text-sm text-white" : btnSecondary}>Lista</Link>
+            <Link href={qs({ view: "kanban" })} className={view === "kanban" ? "rounded-lg bg-ink px-3 py-2 text-sm text-white" : btnSecondary}>Kanban</Link>
             {user.role !== "LEITOR" && <ButtonLink href="/acoes/nova">Nova ação</ButtonLink>}
           </>
         }
       />
 
-      <form className="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-3 lg:grid-cols-6">
+      <form className="mb-4 grid gap-2 rounded-brand border border-line bg-surface p-3 sm:grid-cols-3 lg:grid-cols-6">
         <input type="hidden" name="view" value={view} />
         <select name="diretoria" defaultValue={sp.diretoria ?? ""} className={input}>
           <option value="">Todas as diretorias</option>
@@ -76,7 +76,7 @@ export default async function AcoesPage({ searchParams }: { searchParams: Promis
         <input type="date" name="prazo" defaultValue={sp.prazo ?? ""} className={input} title="Prazo até" />
         <div className="flex gap-2">
           <button className={btnSecondary}>Filtrar</button>
-          <Link href={`/acoes?view=${view}`} className="self-center text-sm text-slate-500 underline">Limpar</Link>
+          <Link href={`/acoes?view=${view}`} className="self-center text-sm text-ink-3 underline">Limpar</Link>
         </div>
       </form>
 
@@ -96,21 +96,21 @@ export default async function AcoesPage({ searchParams }: { searchParams: Promis
           }))}
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-brand border border-line bg-surface">
           <table className="w-full min-w-[720px] text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+            <thead className="bg-surface-2 text-left font-display text-[11px] font-semibold uppercase tracking-[.06em] text-ink-3">
               <tr><th className="px-4 py-2">Ação</th><th>Responsável</th><th>Diretoria</th><th>Prazo</th><th>Prioridade</th><th>Situação</th></tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-grid">
               {actions.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50">
+                <tr key={a.id} className="hover:bg-surface-2">
                   <td className="px-4 py-2">
                     <Link href={`/acoes/${a.id}`} className="font-medium hover:underline">{a.title}</Link>
-                    {a.meeting && <div className="text-xs text-slate-500">Origem: {a.meeting.title}</div>}
+                    {a.meeting && <div className="text-xs text-ink-3">Origem: {a.meeting.title}</div>}
                   </td>
                   <td>{a.owner?.name ?? "—"}</td>
                   <td>{a.directorate?.name ?? "Geral"}</td>
-                  <td className={isOverdue(a.dueDate, a.status) ? "font-medium text-red-600" : ""}>{fmtDate(a.dueDate)}</td>
+                  <td className={isOverdue(a.dueDate, a.status) ? "font-medium text-accent-ink" : ""}>{fmtDate(a.dueDate)}</td>
                   <td>{PRIORITY_LABEL[a.priority]}</td>
                   <td><Badge className={ACTION_STATUS_COLOR[a.status]}>{ACTION_STATUS_LABEL[a.status]}</Badge></td>
                 </tr>

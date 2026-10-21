@@ -45,10 +45,10 @@ export const ACTION_STATUS_LABEL: Record<ActionStatus, string> = {
 };
 
 export const ACTION_STATUS_COLOR: Record<ActionStatus, string> = {
-  NAO_INICIADA: "bg-slate-100 text-slate-700",
-  EM_ANDAMENTO: "bg-blue-100 text-blue-800",
-  BLOQUEADA: "bg-red-100 text-red-800",
-  CONCLUIDA: "bg-emerald-100 text-emerald-800",
+  NAO_INICIADA: "bg-surface-2 text-ink-2",
+  EM_ANDAMENTO: "bg-s2/12 text-s2",
+  BLOQUEADA: "bg-critical/12 text-critical",
+  CONCLUIDA: "bg-s4/12 text-s4",
 };
 
 export const PRIORITY_LABEL: Record<Priority, string> = { BAIXA: "Baixa", MEDIA: "Média", ALTA: "Alta" };

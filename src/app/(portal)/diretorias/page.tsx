@@ -14,9 +14,9 @@ export default async function DiretoriasPage() {
       {dirs.length === 0 ? <Empty>Você ainda não está vinculado a nenhuma diretoria. Fale com um administrador.</Empty> : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {dirs.map((d) => (
-            <Link key={d.id} href={`/diretorias/${d.slug}`} className="rounded-xl border border-slate-200 bg-white p-5 hover:border-[var(--brand)]">
+            <Link key={d.id} href={`/diretorias/${d.slug}`} className="rounded-brand border border-line bg-surface p-5 hover:border-accent">
               <div className="text-lg font-semibold">{d.name}</div>
-              <div className="mt-1 text-sm text-slate-500">{counts.find((c) => c.directorateId === d.id)?._count ?? 0} ações abertas</div>
+              <div className="mt-1 text-sm text-ink-3">{counts.find((c) => c.directorateId === d.id)?._count ?? 0} ações abertas</div>
             </Link>
           ))}
         </div>

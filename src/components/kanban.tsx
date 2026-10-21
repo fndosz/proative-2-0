@@ -39,9 +39,9 @@ export function Kanban({ cards }: { cards: Card[] }) {
             key={status}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => drop(e, status)}
-            className="min-h-40 rounded-xl border border-slate-200 bg-slate-50 p-3"
+            className="min-h-40 rounded-brand border border-line bg-surface-2 p-3"
           >
-            <div className="mb-2 flex justify-between text-xs font-semibold uppercase text-slate-500">
+            <div className="mb-2 flex justify-between text-xs font-semibold uppercase text-ink-3">
               <span>{label}</span><span>{col.length}</span>
             </div>
             <div className="space-y-2">
@@ -50,18 +50,18 @@ export function Kanban({ cards }: { cards: Card[] }) {
                   key={c.id}
                   draggable={c.editable}
                   onDragStart={(e) => e.dataTransfer.setData("text/plain", c.id)}
-                  className={`rounded-lg border bg-white p-3 text-sm shadow-sm ${c.editable ? "cursor-grab" : ""} ${c.overdue ? "border-red-300" : "border-slate-200"}`}
+                  className={`rounded-lg border bg-surface p-3 text-sm shadow-sm ${c.editable ? "cursor-grab" : ""} ${c.overdue ? "border-accent" : "border-line"}`}
                 >
                   <Link href={`/acoes/${c.id}`} className="font-medium hover:underline">{c.title}</Link>
-                  <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-slate-500">
+                  <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-ink-3">
                     <span>{c.owner ?? "Sem responsável"}</span>
-                    {c.due && <span className={c.overdue ? "font-medium text-red-600" : ""}>{c.due}</span>}
+                    {c.due && <span className={c.overdue ? "font-medium text-accent-ink" : ""}>{c.due}</span>}
                     <span>{c.priority}</span>
                   </div>
                   {c.editable && (
                     <select
                       aria-label="Mover para"
-                      className="mt-2 w-full rounded border border-slate-200 px-1 py-0.5 text-xs md:hidden"
+                      className="mt-2 w-full rounded border border-line px-1 py-0.5 text-xs md:hidden"
                       value={c.status}
                       onChange={(e) => {
                         const status = e.target.value;

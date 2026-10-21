@@ -7,7 +7,7 @@ export default async function ConsultoriaPage() {
     <>
       <PageHeader title="Consultoria" subtitle="Fase 2" />
       <Card>
-        <p className="text-sm text-slate-600">Atividades, horas previstas × usadas e periodicidade configurável entram na fase 2.</p>
+        <p className="text-sm text-ink-2">Atividades, horas previstas × usadas e periodicidade configurável entram na fase 2.</p>
       </Card>
     </>
   );

@@ -42,19 +42,19 @@ export default async function DocumentoPage({ params }: { params: Promise<{ id: 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card title="Versões">
-            <ul className="divide-y divide-slate-100 text-sm">
+            <ul className="divide-y divide-grid text-sm">
               {doc.versions.map((v) => (
                 <li key={v.id} className="flex items-center justify-between gap-2 py-2">
                   <div>
                     <span className="font-medium">v{v.number}</span> · {v.fileName}
-                    <div className="text-xs text-slate-500">{size(v.size)} · {v.uploadedBy.name ?? v.uploadedBy.email} · {fmtDateTime(v.createdAt)}</div>
+                    <div className="text-xs text-ink-3">{size(v.size)} · {v.uploadedBy.name ?? v.uploadedBy.email} · {fmtDateTime(v.createdAt)}</div>
                   </div>
-                  <a href={`/api/arquivos/${v.id}`} className="text-sm text-[var(--brand)]">baixar</a>
+                  <a href={`/api/arquivos/${v.id}`} className="text-sm text-accent">baixar</a>
                 </li>
               ))}
             </ul>
             {editable && (
-              <form action={addVersion.bind(null, doc.id)} className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+              <form action={addVersion.bind(null, doc.id)} className="mt-3 flex flex-wrap gap-2 border-t border-grid pt-3">
                 <input type="file" name="file" required className="text-sm" />
                 <button className={btnSecondary}>Enviar nova versão</button>
               </form>
@@ -87,7 +87,7 @@ export default async function DocumentoPage({ params }: { params: Promise<{ id: 
                   <li key={l.id} className="flex justify-between gap-2">
                     {l.meeting ? <Link href={`/reunioes/${l.meeting.id}`} className="hover:underline">Reunião: {l.meeting.title}</Link>
                       : l.action ? <Link href={`/acoes/${l.action.id}`} className="hover:underline">Ação: {l.action.title}</Link> : null}
-                    {editable && <form action={unlinkDocument.bind(null, doc.id, l.id)}><button className="text-xs text-red-600 underline">×</button></form>}
+                    {editable && <form action={unlinkDocument.bind(null, doc.id, l.id)}><button className="text-xs text-accent-ink underline">×</button></form>}
                   </li>
                 ))}
               </ul>
@@ -110,7 +110,7 @@ export default async function DocumentoPage({ params }: { params: Promise<{ id: 
                     {u.name ?? u.email}
                   </label>
                 ))}
-                <p className="pt-1 text-xs text-slate-500">Administradores e quem enviou sempre têm acesso.</p>
+                <p className="pt-1 text-xs text-ink-3">Administradores e quem enviou sempre têm acesso.</p>
                 <button className={`${btnSecondary} mt-2 w-full`}>Salvar acesso</button>
               </form>
             </Card>
