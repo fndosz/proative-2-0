@@ -3,9 +3,10 @@ import { put, get, del } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
 
-// Arquivos sempre privados. Em produção: Vercel Blob (access: "private").
-// Sem BLOB_READ_WRITE_TOKEN (desenvolvimento local): pasta .storage/ no disco.
-const useBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+// Arquivos sempre privados. Em produção: Vercel Blob (access: "private"),
+// autenticado por token (BLOB_READ_WRITE_TOKEN) ou por OIDC da Vercel (BLOB_STORE_ID).
+// Sem nenhum dos dois (desenvolvimento local): pasta .storage/ no disco.
+const useBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 const LOCAL_ROOT = path.join(process.cwd(), ".storage");
 
 function safeName(name: string) {
