@@ -13,7 +13,7 @@ Next.js 15 (App Router, TypeScript) · PostgreSQL via Prisma · Auth.js com Micr
 | Biblioteca | `/biblioteca` | pronto — versões, etiquetas, vínculos, busca, documento restrito por pessoa |
 | Diretorias | `/diretorias` | pronto — metas, ações, documentos, reuniões, membros (indicadores: fase 2) |
 | Histórico | `/historico` | pronto — tabela de auditoria |
-| Rascunho / transcrição → ata | dentro da reunião | pronto — texto livre guardado no histórico; **Gerar ata com IA** redige no modelo Proative (Claude Opus 5.5, `ANTHROPIC_API_KEY`) |
+| Rascunho / transcrição → ata | dentro da reunião | pronto — texto livre guardado no histórico, importação de Word (.docx); **Gerar ata com IA** redige no modelo Proative (Claude Opus 5.5, `ANTHROPIC_API_KEY`) |
 | Gravações Plaud | dentro da reunião | **etapa 1**: upload do áudio bruto; speech-to-text ainda não ligado |
 | Conselho consultivo, Consultoria | `/conselho`, `/consultoria` | fase 2 (placeholder) |
 

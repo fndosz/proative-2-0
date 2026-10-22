@@ -118,3 +118,45 @@ export async function generateAtaFromTranscript(meetingId: string, _prev: Action
     ok: `Ata gerada: ${newDecisions.length} decisão(ões), ${newReferrals.length} encaminhamento(s)${newParticipants.length ? `, ${newParticipants.length} participante(s) detectado(s)` : ""}${draft.unclear.length ? ` · ${draft.unclear.length} ponto(s) marcados [a confirmar]` : ""}. Revise o texto abaixo antes de aprovar.`,
   };
 }
+
+/** Importa um documento Word (.docx): o texto vira rascunho/transcrição e o arquivo fica na biblioteca, vinculado à reunião. */
+export async function importWord(meetingId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, meeting, minutes } = await loadEditable(meetingId);
+  const file = fd.get("docx");
+  if (!(file instanceof File) || file.size === 0) return { error: "Escolha um arquivo .docx para importar." };
+  if (!/\.docx$/i.test(file.name)) return { error: "Formato aceito: Word (.docx). Para .doc antigo, salve como .docx antes." };
+  if (file.size > 20 * 1024 * 1024) return { error: "Arquivo acima de 20 MB." };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  let text: string;
+  try {
+    const mammoth = await import("mammoth");
+    text = (await mammoth.extractRawText({ buffer })).value.replace(/\n{3,}/g, "\n\n").trim();
+  } catch {
+    return { error: "Não foi possível ler o arquivo. Confirme que é um .docx válido." };
+  }
+  if (!text) return { error: "O documento não tem texto legível (só imagens?)." };
+
+  const mode = String(fd.get("importMode") ?? "append");
+  const transcript = mode === "replace" || !minutes.transcript.trim() ? text : `${minutes.transcript.trimEnd()}\n\n--- Importado de ${file.name} ---\n${text}`;
+
+  const { saveFile } = await import("@/lib/storage");
+  const pathname = await saveFile(`reunioes/${meetingId}/docs`, file);
+  await db.$transaction([
+    db.minutes.update({ where: { id: minutes.id }, data: { transcript, transcriptUpdatedAt: new Date() } }),
+    db.document.create({
+      data: {
+        title: file.name.replace(/\.docx$/i, ""),
+        description: "Importado como rascunho da ata",
+        tags: ["ata", "importado"],
+        directorateId: meeting.directorateId,
+        createdById: user.id,
+        versions: { create: { number: 1, fileName: file.name, mimeType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document", size: file.size, blobPathname: pathname, uploadedById: user.id } },
+        links: { create: { meetingId } },
+      },
+    }),
+  ]);
+  await audit({ actorId: user.id, action: "minutes.importWord", entityType: "Meeting", entityId: meetingId, summary: `Importou "${file.name}" para o rascunho da ata (${text.length.toLocaleString("pt-BR")} caracteres)` });
+  revalidatePath(`/reunioes/${meetingId}`);
+  return { ok: `"${file.name}" importado: ${text.length.toLocaleString("pt-BR")} caracteres no rascunho. Revise e clique em "Gerar ata com IA" se quiser formatar.` };
+}

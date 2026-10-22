@@ -9,7 +9,7 @@ import {
 } from "@/actions/meetings";
 import { ConfirmButton, SubmitButton } from "@/components/submit-button";
 import { uploadRecording } from "@/actions/recordings";
-import { generateAtaFromTranscript, saveTranscript } from "@/actions/ata-draft";
+import { generateAtaFromTranscript, importWord, saveTranscript } from "@/actions/ata-draft";
 import { aiEnabled, MODEL } from "@/lib/ata-ai";
 import { AtaDraft } from "@/components/ata-draft";
 
@@ -93,6 +93,7 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
                 aiInfo={minutes?.aiGeneratedAt ? `Última geração: ${fmtDateTime(minutes.aiGeneratedAt)} · ${minutes.aiModel ?? MODEL} · custo acumulado US$ ${(minutes.aiCostCents / 100).toFixed(2)}` : null}
                 saveAction={saveTranscript.bind(null, meeting.id)}
                 generateAction={generateAtaFromTranscript.bind(null, meeting.id)}
+                importAction={importWord.bind(null, meeting.id)}
               />
             </Card>
           )}

@@ -12,6 +12,7 @@ type Props = {
   aiInfo: string | null;
   saveAction: (prev: ActionState, fd: FormData) => Promise<ActionState>;
   generateAction: (prev: ActionState, fd: FormData) => Promise<ActionState>;
+  importAction: (prev: ActionState, fd: FormData) => Promise<ActionState>;
 };
 
 function Submit({ formAction, className, children, pendingText }: { formAction: (fd: FormData) => void; className: string; children: React.ReactNode; pendingText: string }) {
@@ -23,10 +24,11 @@ function Submit({ formAction, className, children, pendingText }: { formAction: 
   );
 }
 
-export function AtaDraft({ transcript, updatedAt, aiEnabled, aiInfo, saveAction, generateAction }: Props) {
+export function AtaDraft({ transcript, updatedAt, aiEnabled, aiInfo, saveAction, generateAction, importAction }: Props) {
   const [saveState, save] = useActionState(saveAction, null);
   const [genState, generate, generating] = useActionState(generateAction, null);
-  const state = genState ?? saveState;
+  const [importState, doImport] = useActionState(importAction, null);
+  const state = genState ?? importState ?? saveState;
 
   return (
     <form className="space-y-3">
@@ -47,6 +49,16 @@ export function AtaDraft({ transcript, updatedAt, aiEnabled, aiInfo, saveAction,
           <input type="checkbox" name="overwrite" /> Substituir o texto atual da ata
         </label>
         {updatedAt && <span className="ml-auto text-xs text-ink-3">Rascunho salvo em {updatedAt}</span>}
+      </div>
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-line p-3">
+        <span className="font-display text-[11px] font-semibold uppercase tracking-[.08em] text-ink-3">Importar Word</span>
+        <input type="file" name="docx" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="text-[13px]" />
+        <select name="importMode" defaultValue="append" className="rounded-lg border border-line bg-surface px-2 py-1 text-[13px]">
+          <option value="append">Acrescentar ao rascunho</option>
+          <option value="replace">Substituir o rascunho</option>
+        </select>
+        <Submit formAction={doImport} className={btnSecondary} pendingText="Importando…">Importar .docx</Submit>
+        <span className="text-xs text-ink-3">O arquivo também fica na Biblioteca, vinculado a esta reunião.</span>
       </div>
       {!aiEnabled && (
         <p className="rounded-lg bg-warning/15 p-3 text-[13px] text-s6">
