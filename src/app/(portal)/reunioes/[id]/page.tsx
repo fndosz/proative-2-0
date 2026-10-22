@@ -4,13 +4,20 @@ import { db } from "@/lib/db";
 import { canApproveMinutes, canEdit, canView, directorateScope, requireUser } from "@/lib/authz";
 import { activeUsers, directoratesFor } from "@/lib/directorates";
 import {
-  addDecision, addParticipant, addReferral, approveMinutes, convertReferral, deleteDecision,
+  addDecision, addParticipant, addReferral, approveMinutes, archiveMeeting, convertReferral, deleteDecision, deleteMeeting,
   deleteReferral, removeParticipant, saveMinutes, submitMinutesForReview, toggleDecision, togglePresence, updateMeeting,
 } from "@/actions/meetings";
+import { ConfirmButton, SubmitButton } from "@/components/submit-button";
 import { uploadRecording } from "@/actions/recordings";
+import { generateAtaFromTranscript, saveTranscript } from "@/actions/ata-draft";
+import { aiEnabled, MODEL } from "@/lib/ata-ai";
+import { AtaDraft } from "@/components/ata-draft";
+
+// A geração da ata pelo Claude pode levar mais de um minuto
+export const maxDuration = 300;
 import { ACTION_STATUS_LABEL, fmtDate, fmtDateTime, MINUTES_STATUS_LABEL, PRIORITY_LABEL, toDateInput } from "@/lib/format";
 import { MeetingFields } from "@/components/meeting-form";
-import { Badge, btnPrimary, btnSecondary, Card, Empty, Field, input, PageHeader } from "@/components/ui";
+import { Badge, btnDanger, btnPrimary, btnSecondary, Card, Empty, Field, input, PageHeader } from "@/components/ui";
 
 const SECTIONS = [
   { name: "agenda", label: "Ordem do dia", hint: "Itens de pauta, um por linha." },
@@ -66,6 +73,9 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
         }
       />
 
+      {meeting.archivedAt && (
+        <p className="mb-4 rounded-lg bg-surface-2 p-3 text-sm text-ink-2">Reunião arquivada em {fmtDateTime(meeting.archivedAt)}. Ela não aparece na lista principal, mas segue no histórico.</p>
+      )}
       {minutes?.status === "APROVADA" && editable && (
         <p className="mb-4 rounded-lg bg-s4/10 p-3 text-sm text-s4">
           Ata aprovada (versão {lastVersion?.number}). Qualquer edição reabre como rascunho; a versão aprovada fica guardada.
@@ -74,6 +84,18 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          {editable && (
+            <Card title="Rascunho / transcrição → ata com IA">
+              <AtaDraft
+                transcript={minutes?.transcript ?? ""}
+                updatedAt={minutes?.transcriptUpdatedAt ? fmtDateTime(minutes.transcriptUpdatedAt) : null}
+                aiEnabled={aiEnabled()}
+                aiInfo={minutes?.aiGeneratedAt ? `Última geração: ${fmtDateTime(minutes.aiGeneratedAt)} · ${minutes.aiModel ?? MODEL} · custo acumulado US$ ${(minutes.aiCostCents / 100).toFixed(2)}` : null}
+                saveAction={saveTranscript.bind(null, meeting.id)}
+                generateAction={generateAtaFromTranscript.bind(null, meeting.id)}
+              />
+            </Card>
+          )}
           <Card title="Ata">
             {editable ? (
               <form action={saveMinutes.bind(null, meeting.id)} className="space-y-4">
@@ -82,7 +104,7 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
                     <textarea name={s.name} rows={s.name === "discussions" ? 8 : 4} defaultValue={minutes?.[s.name] ?? ""} className={input} />
                   </Field>
                 ))}
-                <button className={btnPrimary}>Salvar ata</button>
+                <SubmitButton className={btnPrimary}>Salvar ata</SubmitButton>
               </form>
             ) : (
               <div className="space-y-4">
@@ -220,9 +242,10 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
                   <option value="">Usuário do portal (opcional)</option>
                   {users.map((u) => <option key={u.id} value={u.id}>{u.name ?? u.email}</option>)}
                 </select>
-                <input name="name" placeholder="ou nome do participante externo" className={input} />
-                <input name="role" placeholder="Papel (Presidente, Secretário…)" className={input} />
+                <input name="name" placeholder="ou nome do participante externo" className={input} autoComplete="off" />
+                <input name="role" placeholder="Papel (Presidente, Secretário…)" className={input} autoComplete="off" />
                 <button className={`${btnSecondary} w-full`}>Adicionar participante</button>
+                <p className="text-xs text-ink-3">Escolha um usuário do portal ou digite o nome; o papel é opcional.</p>
               </form>
             )}
           </Card>
@@ -260,12 +283,24 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
           </Card>
 
           {editable && (
-            <details className="rounded-brand border border-line bg-surface p-5">
-              <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-ink-3">Editar dados da reunião</summary>
+            <details id="editar" className="rounded-brand border border-line bg-surface p-5">
+              <summary className="cursor-pointer font-display text-[11px] font-semibold uppercase tracking-[.08em] text-ink-3">Atualizar dados da reunião</summary>
               <form action={updateMeeting.bind(null, meeting.id)} className="mt-4 space-y-4">
                 <MeetingFields directorates={directorates} meeting={meeting} />
-                <button className={btnPrimary}>Salvar</button>
+                <SubmitButton className={btnPrimary}>Salvar</SubmitButton>
               </form>
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
+                <form action={archiveMeeting.bind(null, meeting.id)}>
+                  <SubmitButton className={btnSecondary} pendingText="Aguarde…">{meeting.archivedAt ? "Desarquivar reunião" : "Arquivar reunião"}</SubmitButton>
+                </form>
+                {meeting.actions.length === 0 ? (
+                  <form action={deleteMeeting.bind(null, meeting.id)}>
+                    <ConfirmButton className={btnDanger} message={`Remover a reunião "${meeting.title}" e sua ata? Esta ação não pode ser desfeita.`}>Remover reunião</ConfirmButton>
+                  </form>
+                ) : (
+                  <span className="self-center text-xs text-ink-3">Para remover, antes desvincule as {meeting.actions.length} ação(ões) do plano — ou arquive.</span>
+                )}
+              </div>
             </details>
           )}
         </div>

@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz";
 import { directoratesFor } from "@/lib/directorates";
 import { MeetingFields } from "@/components/meeting-form";
 import { btnPrimary, Card, PageHeader } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function NovaReuniaoPage() {
   const user = await requireUser();
@@ -13,7 +14,7 @@ export default async function NovaReuniaoPage() {
       <Card>
         <form action={createMeeting} className="space-y-4">
           <MeetingFields directorates={directorates} />
-          <button className={btnPrimary}>Criar reunião</button>
+          <SubmitButton className={btnPrimary} pendingText="Criando…">Criar reunião</SubmitButton>
         </form>
       </Card>
     </>

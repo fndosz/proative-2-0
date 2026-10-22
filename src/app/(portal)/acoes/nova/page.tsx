@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz";
 import { activeUsers, directoratesFor } from "@/lib/directorates";
 import { ActionFields } from "@/components/action-form";
 import { btnPrimary, Card, PageHeader } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function NovaAcaoPage() {
   const user = await requireUser();
@@ -13,7 +14,7 @@ export default async function NovaAcaoPage() {
       <Card>
         <form action={createAction} className="space-y-4">
           <ActionFields directorates={directorates} users={users} />
-          <button className={btnPrimary}>Criar ação</button>
+          <SubmitButton className={btnPrimary} pendingText="Criando…">Criar ação</SubmitButton>
         </form>
       </Card>
     </>

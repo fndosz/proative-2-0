@@ -13,7 +13,8 @@ Next.js 15 (App Router, TypeScript) · PostgreSQL via Prisma · Auth.js com Micr
 | Biblioteca | `/biblioteca` | pronto — versões, etiquetas, vínculos, busca, documento restrito por pessoa |
 | Diretorias | `/diretorias` | pronto — metas, ações, documentos, reuniões, membros (indicadores: fase 2) |
 | Histórico | `/historico` | pronto — tabela de auditoria |
-| Gravações Plaud | dentro da reunião | **etapa 1**: upload do áudio bruto. Transcrição e redação pelo Claude aguardam decisões |
+| Rascunho / transcrição → ata | dentro da reunião | pronto — texto livre guardado no histórico; **Gerar ata com IA** redige no modelo Proative (Claude Opus 5.5, `ANTHROPIC_API_KEY`) |
+| Gravações Plaud | dentro da reunião | **etapa 1**: upload do áudio bruto; speech-to-text ainda não ligado |
 | Conselho consultivo, Consultoria | `/conselho`, `/consultoria` | fase 2 (placeholder) |
 
 Permissões: perfil (Admin / Diretoria / Consultor / Leitor) + acesso por diretoria (leitura/edição) + ACL por documento. Tudo checado no servidor, inclusive o download de arquivos (`/api/arquivos/[id]`).
@@ -41,5 +42,6 @@ Sem `BLOB_READ_WRITE_TOKEN`, os arquivos vão para `.storage/` no disco. Com `DE
 ## Pendências conhecidas
 
 - **Uploads grandes**: na Vercel o corpo de uma requisição é limitado a ~4,5 MB. Áudios do Plaud e documentos maiores precisam de upload direto do navegador ao Blob (`@vercel/blob/client`) — próximo passo.
-- **Transcrição + Claude**: escolher o serviço de speech-to-text (AssemblyAI / Deepgram / Azure) e definir a chave da API do Claude.
+- **Transcrição automática**: escolher o serviço de speech-to-text (AssemblyAI / Deepgram / Azure) para transformar o áudio do Plaud em texto; hoje a transcrição é colada manualmente.
+- **Chave do Claude**: `ANTHROPIC_API_KEY` na Vercel (Production). Sem ela o botão "Gerar ata com IA" fica desligado; o rascunho continua salvando. Custo por geração fica registrado na ata e no Histórico.
 - **Identidade visual**: tokens do brandbook Proative 2.0 em `src/app/globals.css` (`@theme`: `accent`, `ink`, `line`, `surface`…), fontes Source Sans 3 (títulos) e Open Sans (texto), logotipo em `src/components/logo.tsx`.

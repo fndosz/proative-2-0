@@ -153,6 +153,7 @@ model Meeting {
   date          DateTime
   location      String?
   status        MeetingStatus @default(AGENDADA)
+  archivedAt    DateTime?     // arquivada: sai das listas, mas fica no histórico
   directorateId String?
   createdById   String
   createdAt     DateTime      @default(now())
@@ -194,6 +195,12 @@ model Minutes {
   discussions String @default("") @db.Text
   generalTopics String @default("") @db.Text
   closing     String @default("") @db.Text
+  // Rascunho livre / transcrição (Plaud, anotações) — fica no histórico e alimenta a geração da ata pelo Claude
+  transcript          String    @default("") @db.Text
+  transcriptUpdatedAt DateTime?
+  aiGeneratedAt       DateTime?
+  aiModel             String?
+  aiCostCents         Int       @default(0)
   updatedAt   DateTime @updatedAt
 
   meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)

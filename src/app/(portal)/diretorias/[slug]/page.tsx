@@ -14,7 +14,7 @@ export default async function DiretoriaPage({ params }: { params: Promise<{ slug
     include: {
       goals: { orderBy: { createdAt: "asc" } },
       actions: { where: { status: { not: "CONCLUIDA" } }, include: { owner: true }, orderBy: { dueDate: { sort: "asc", nulls: "last" } } },
-      meetings: { orderBy: { date: "desc" }, take: 5 },
+      meetings: { where: { archivedAt: null }, orderBy: { date: "desc" }, take: 5 },
       documents: { where: documentScope(user), orderBy: { updatedAt: "desc" }, take: 8 },
       members: { include: { user: true } },
     },

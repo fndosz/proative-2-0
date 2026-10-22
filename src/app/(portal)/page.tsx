@@ -19,7 +19,7 @@ export default async function PainelPage() {
       take: 8,
     }),
     db.meeting.findMany({
-      where: { ...scope, status: "AGENDADA", date: { gte: today } },
+      where: { ...scope, status: "AGENDADA", archivedAt: null, date: { gte: today } },
       orderBy: { date: "asc" },
       take: 5,
       include: { directorate: true },

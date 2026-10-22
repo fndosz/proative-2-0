@@ -2,6 +2,7 @@ import { createDocument } from "@/actions/documents";
 import { requireUser } from "@/lib/authz";
 import { directoratesFor } from "@/lib/directorates";
 import { btnPrimary, Card, Field, input, PageHeader } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function NovoDocumentoPage({ searchParams }: { searchParams: Promise<{ meetingId?: string }> }) {
   const { meetingId } = await searchParams;
@@ -24,7 +25,7 @@ export default async function NovoDocumentoPage({ searchParams }: { searchParams
           <div className="md:col-span-2"><Field label="Descrição"><textarea name="description" rows={3} className={input} /></Field></div>
           <Field label="Etiquetas" hint="Separadas por vírgula."><input name="tags" className={input} placeholder="contrato, 2026" /></Field>
           <label className="flex items-center gap-2 self-end text-sm"><input type="checkbox" name="restricted" /> Restrito (só pessoas escolhidas)</label>
-          <div className="md:col-span-2"><button className={btnPrimary}>Enviar</button></div>
+          <div className="md:col-span-2"><SubmitButton className={btnPrimary} pendingText="Enviando…">Enviar</SubmitButton></div>
         </form>
       </Card>
     </>

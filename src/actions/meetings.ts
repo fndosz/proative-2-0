@@ -82,8 +82,9 @@ export async function addParticipant(meetingId: string, fd: FormData) {
     const u = await db.user.findUnique({ where: { id: userId } });
     name = name || u?.name || u?.email || "";
   }
-  if (!name) return;
+  if (!name) throw new Error("Informe o nome do participante ou escolha um usuário do portal.");
   await db.meetingParticipant.create({ data: { meetingId, userId, name, role: opt(fd, "role") } });
+  await audit({ actorId: user.id, action: "meeting.participant", entityType: "Meeting", entityId: meetingId, summary: `Adicionou o participante ${name}` });
   revalidatePath(`/reunioes/${meetingId}`);
 }
 
@@ -227,4 +228,31 @@ export async function approveMinutes(meetingId: string) {
   ]);
   await audit({ actorId: user.id, action: "minutes.approve", entityType: "Meeting", entityId: meetingId, summary: `Aprovou a ata de "${meeting.title}" (versão ${number})` });
   revalidatePath(`/reunioes/${meetingId}`);
+}
+
+export async function archiveMeeting(meetingId: string) {
+  const user = await requireUser();
+  const meeting = await loadEditable(meetingId, user);
+  await db.meeting.update({ where: { id: meetingId }, data: { archivedAt: meeting.archivedAt ? null : new Date() } });
+  await audit({
+    actorId: user.id,
+    action: meeting.archivedAt ? "meeting.unarchive" : "meeting.archive",
+    entityType: "Meeting",
+    entityId: meetingId,
+    summary: `${meeting.archivedAt ? "Desarquivou" : "Arquivou"} a reunião "${meeting.title}"`,
+  });
+  revalidatePath("/reunioes");
+  revalidatePath(`/reunioes/${meetingId}`);
+}
+
+/** Remove a reunião e sua ata. Bloqueado se houver ações do plano vinculadas (arquive nesse caso). */
+export async function deleteMeeting(meetingId: string) {
+  const user = await requireUser();
+  const meeting = await loadEditable(meetingId, user);
+  const linked = await db.actionItem.count({ where: { meetingId } });
+  if (linked > 0) throw new Error(`Esta reunião tem ${linked} ação(ões) no plano de ação. Arquive-a em vez de remover.`);
+  await db.meeting.delete({ where: { id: meetingId } });
+  await audit({ actorId: user.id, action: "meeting.delete", entityType: "Meeting", entityId: meetingId, summary: `Removeu a reunião "${meeting.title}" (${meeting.date.toLocaleDateString("pt-BR")})` });
+  revalidatePath("/reunioes");
+  redirect("/reunioes");
 }
