@@ -12,6 +12,7 @@ type Item = { href: string; label: string; phase2?: boolean; adminOnly?: boolean
 const ITEMS: Item[] = [
   { href: "/", label: "Painel geral" },
   { href: "/reunioes", label: "Reuniões e atas" },
+  { href: "/anotacoes", label: "Anotações" },
   { href: "/acoes", label: "Plano de ação" },
   { href: "/biblioteca", label: "Biblioteca" },
   { href: "/diretorias", label: "Diretorias" },

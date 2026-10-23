@@ -39,6 +39,7 @@ model User {
   actionsCreated   ActionItem[]      @relation("ActionCreatedBy")
   comments         ActionComment[]
   documentsCreated Document[]        @relation("DocumentCreatedBy")
+  notesCreated     Note[]
   versionsUploaded DocumentVersion[]
   documentGrants   DocumentAccess[]
   events           AuditEvent[]
@@ -109,6 +110,7 @@ model Directorate {
   actions   ActionItem[]
   documents Document[]
   goals     Goal[]
+  notes     Note[]
 }
 
 enum DirectorateAccess {
@@ -445,6 +447,29 @@ model AuditEvent {
   @@index([createdAt])
   @@index([entityType, entityId])
   @@index([actorId, createdAt])
+}
+
+// ───────────── Anotações (registros rápidos sem ata formal) ─────────────
+
+model Note {
+  id            String    @id @default(cuid())
+  title         String
+  date          DateTime
+  directorateId String?
+  participants  String?   // texto livre: quem estava
+  body          String    @db.Text
+  tags          String[]
+  meetingId     String?   // preenchido quando a anotação vira uma reunião com ata
+  createdById   String
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  directorate Directorate? @relation(fields: [directorateId], references: [id])
+  createdBy   User         @relation(fields: [createdById], references: [id])
+
+  @@index([date])
+  @@index([directorateId, archivedAt])
 }
 
 // ───────────── Log de acesso e performance ─────────────

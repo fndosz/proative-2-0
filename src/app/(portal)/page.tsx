@@ -10,7 +10,7 @@ export default async function PainelPage() {
   const today = startOfToday();
   const dirIds = visibleDirectorateIds(user);
 
-  const [byStatus, overdue, upcoming, pendingDecisions, directorates] = await Promise.all([
+  const [byStatus, overdue, upcoming, pendingDecisions, directorates, notes] = await Promise.all([
     db.actionItem.groupBy({ by: ["status"], where: scope, _count: true }),
     db.actionItem.findMany({
       where: { ...scope, status: { not: "CONCLUIDA" }, dueDate: { lt: today } },
@@ -35,6 +35,7 @@ export default async function PainelPage() {
       orderBy: { sortOrder: "asc" },
       include: { actions: { select: { status: true, dueDate: true } } },
     }),
+    db.note.findMany({ where: { ...scope, archivedAt: null }, orderBy: { date: "desc" }, take: 5, include: { directorate: true } }),
   ]);
 
   const count = (s: string) => byStatus.find((b) => b.status === s)?._count ?? 0;
@@ -100,6 +101,21 @@ export default async function PainelPage() {
                 <li key={d.id} className="py-2">
                   <div className="text-sm">{d.text}</div>
                   <Link href={`/reunioes/${d.minutes.meetingId}`} className="text-xs text-ink-3 hover:underline">{d.minutes.meeting.title}</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Anotações recentes" actions={<Link href="/anotacoes" className="text-sm text-accent">Ver todas</Link>}>
+          {notes.length === 0 ? (
+            <Empty>Nenhuma anotação. <Link className="underline" href="/anotacoes/nova">Registrar uma conversa</Link></Empty>
+          ) : (
+            <ul className="divide-y divide-grid">
+              {notes.map((n) => (
+                <li key={n.id} className="py-2">
+                  <Link href={`/anotacoes/${n.id}`} className="font-medium hover:underline">{n.title}</Link>
+                  <div className="text-xs text-ink-3">{fmtDateTime(n.date)} · {n.directorate?.name ?? "Geral"}</div>
                 </li>
               ))}
             </ul>
