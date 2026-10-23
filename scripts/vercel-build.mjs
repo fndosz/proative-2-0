@@ -14,7 +14,18 @@ if (!found) {
 process.env.DATABASE_URL = process.env[found];
 console.log(`Usando ${found} como DATABASE_URL`);
 
-for (const cmd of ["prisma generate", "prisma migrate deploy", "tsx prisma/seed.ts", "next build"]) {
+// Migrações precisam de conexão direta (sem pgbouncer): o advisory lock do Prisma não funciona no pool
+const unpooled = ["DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING"].map((k) => process.env[k]).find(Boolean);
+const migrateEnv = { ...process.env, DATABASE_URL: unpooled ?? process.env.DATABASE_URL };
+console.log(unpooled ? "Migrações via conexão direta (unpooled)" : "Aviso: sem URL unpooled; migrando pelo pool");
+
+const steps = [
+  ["prisma generate", process.env],
+  ["prisma migrate deploy", migrateEnv],
+  ["tsx prisma/seed.ts", migrateEnv],
+  ["next build", process.env],
+];
+for (const [cmd, env] of steps) {
   console.log(`\n$ ${cmd}`);
-  execSync(cmd, { stdio: "inherit", env: process.env });
+  execSync(cmd, { stdio: "inherit", env });
 }
