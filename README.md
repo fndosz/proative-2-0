@@ -14,6 +14,7 @@ Next.js 15 (App Router, TypeScript) · PostgreSQL via Prisma · Auth.js com Micr
 | Diretorias | `/diretorias` | pronto — metas, ações, documentos, reuniões, membros (indicadores: fase 2) |
 | Histórico | `/historico` | pronto — tabela de auditoria |
 | Indicadores e logs | `/admin`, `/admin/logs` | pronto — requisições, tempo médio/P95, erros, rotas lentas, uso da IA; log de acessos (90 dias) e auditoria |
+| Assistente da ata (chat IA) | dentro da reunião | pronto — resumos, destaques e ajustes aplicados na ata (renomear participantes, reescrever seções, decisões/encaminhamentos); histórico por ata |
 | Rascunho / transcrição → ata | dentro da reunião | pronto — texto livre guardado no histórico, importação de Word (.docx); **Gerar ata com IA** redige no modelo Proative (Claude Opus 5.5, `ANTHROPIC_API_KEY`) |
 | Gravações Plaud | dentro da reunião | **etapa 1**: upload do áudio bruto; speech-to-text ainda não ligado |
 | Conselho consultivo, Consultoria | `/conselho`, `/consultoria` | fase 2 (placeholder) |

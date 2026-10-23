@@ -210,6 +210,28 @@ model Minutes {
   decisions Decision[]
   referrals Referral[]
   versions  MinutesVersion[]
+  messages  MinutesMessage[]
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+// Conversa com o assistente da ata (pedidos de ajuste, resumos); fica no histórico da ata
+model MinutesMessage {
+  id         String   @id @default(cuid())
+  minutesId  String
+  role       ChatRole
+  content    String   @db.Text
+  operations Json?    // alterações aplicadas pelo assistente nesta resposta
+  costCents  Int      @default(0)
+  authorId   String?
+  createdAt  DateTime @default(now())
+
+  minutes Minutes @relation(fields: [minutesId], references: [id], onDelete: Cascade)
+
+  @@index([minutesId, createdAt])
 }
 
 enum DecisionStatus {

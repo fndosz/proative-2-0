@@ -12,6 +12,8 @@ import { uploadRecording } from "@/actions/recordings";
 import { generateAtaFromTranscript, importWord, saveTranscript } from "@/actions/ata-draft";
 import { aiEnabled, MODEL } from "@/lib/ata-ai";
 import { AtaDraft } from "@/components/ata-draft";
+import { AtaChat } from "@/components/ata-chat";
+import { askAta, clearAtaChat } from "@/actions/ata-chat";
 
 // A geração da ata pelo Claude pode levar mais de um minuto
 export const maxDuration = 300;
@@ -39,6 +41,7 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
           decisions: { orderBy: { createdAt: "asc" } },
           referrals: { orderBy: { createdAt: "asc" }, include: { action: { include: { owner: true } } } },
           versions: { orderBy: { number: "desc" }, include: { approvedBy: true } },
+          messages: { orderBy: { createdAt: "asc" }, take: 40 },
         },
       },
       actions: { include: { owner: true }, orderBy: { createdAt: "asc" } },
@@ -119,6 +122,19 @@ export default async function ReuniaoPage({ params }: { params: Promise<{ id: st
             )}
           </Card>
 
+          {editable && (
+            <Card title="Assistente da ata (IA)">
+              <AtaChat
+                aiEnabled={aiEnabled()}
+                messages={(minutes?.messages ?? []).map((m) => ({
+                  id: m.id, role: m.role, content: m.content, at: fmtDateTime(m.createdAt),
+                  applied: Array.isArray(m.operations) ? (m.operations as { type: string }[]).map((o) => o.type.replace(/_/g, " ")) : [],
+                }))}
+                action={askAta.bind(null, meeting.id)}
+                clearAction={clearAtaChat.bind(null, meeting.id)}
+              />
+            </Card>
+          )}
           <Card title="Decisões">
             {minutes?.decisions.length ? (
               <ul className="mb-3 space-y-2">
