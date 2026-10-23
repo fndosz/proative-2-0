@@ -57,3 +57,42 @@ export async function updateUser(userId: string, fd: FormData) {
   });
   revalidatePath("/admin");
 }
+
+const slugify = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40);
+
+export async function createDirectorate(fd: FormData) {
+  const admin = await requireRole("ADMIN");
+  const name = String(fd.get("name") ?? "").trim();
+  if (name.length < 2) throw new Error("Informe o nome da diretoria.");
+  let slug = slugify(name) || "diretoria";
+  if (await db.directorate.findUnique({ where: { slug } })) slug = `${slug}-${Date.now().toString(36)}`;
+  const count = await db.directorate.count();
+  const d = await db.directorate.create({ data: { name, slug, sortOrder: count, description: String(fd.get("description") ?? "").trim() || null } });
+  await audit({ actorId: admin.id, action: "directorate.create", entityType: "Directorate", entityId: d.id, summary: `Criou a diretoria "${name}"` });
+  revalidatePath("/", "layout");
+}
+
+export async function updateDirectorate(directorateId: string, fd: FormData) {
+  const admin = await requireRole("ADMIN");
+  const current = await db.directorate.findUniqueOrThrow({ where: { id: directorateId } });
+  const name = String(fd.get("name") ?? "").trim();
+  if (name.length < 2) throw new Error("Informe o nome da diretoria.");
+  const sortOrder = Number(fd.get("sortOrder") ?? current.sortOrder) || 0;
+  await db.directorate.update({ where: { id: directorateId }, data: { name, sortOrder, description: String(fd.get("description") ?? "").trim() || null } });
+  await audit({ actorId: admin.id, action: "directorate.update", entityType: "Directorate", entityId: directorateId, summary: current.name === name ? `Atualizou a diretoria "${name}"` : `Renomeou a diretoria "${current.name}" para "${name}"` });
+  revalidatePath("/", "layout");
+}
+
+export async function deleteDirectorate(directorateId: string) {
+  const admin = await requireRole("ADMIN");
+  const d = await db.directorate.findUniqueOrThrow({
+    where: { id: directorateId },
+    include: { _count: { select: { meetings: true, actions: true, documents: true, notes: true, members: true } } },
+  });
+  const linked = d._count.meetings + d._count.actions + d._count.documents + d._count.notes;
+  if (linked > 0) throw new Error(`"${d.name}" tem ${linked} registro(s) vinculados (reuniões, ações, documentos ou anotações). Renomeie em vez de remover.`);
+  await db.directorate.delete({ where: { id: directorateId } });
+  await audit({ actorId: admin.id, action: "directorate.delete", entityType: "Directorate", entityId: directorateId, summary: `Removeu a diretoria "${d.name}"` });
+  revalidatePath("/", "layout");
+}

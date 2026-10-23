@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/authz";
-import { inviteUser, revokeInvite, updateUser } from "@/actions/admin";
+import { createDirectorate, deleteDirectorate, inviteUser, revokeInvite, updateDirectorate, updateUser } from "@/actions/admin";
+import { ConfirmButton, SubmitButton } from "@/components/submit-button";
 import { fmtDateTime, ROLE_LABEL } from "@/lib/format";
 import Link from "next/link";
 import { perfMetrics, portalCounts } from "@/lib/metrics";
@@ -22,7 +23,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const [users, invites, directorates, perf, counts] = await Promise.all([
     db.user.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }], include: { directorates: true } }),
     db.invite.findMany({ where: { acceptedAt: null }, orderBy: { createdAt: "desc" } }),
-    db.directorate.findMany({ orderBy: { sortOrder: "asc" } }),
+    db.directorate.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { meetings: true, actions: true, documents: true, notes: true, members: true } } } }),
     perfMetrics(hours),
     portalCounts(),
   ]);
@@ -199,6 +200,44 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </form>
           </details>
         ))}
+      </div>
+
+      <h2 className="mb-3 mt-8 font-display text-lg font-semibold">Diretorias</h2>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card title="Nova diretoria">
+          <form action={createDirectorate} className="space-y-3">
+            <Field label="Nome"><input name="name" required className={input} placeholder="Ex.: Parceria / Produto" /></Field>
+            <Field label="Descrição (opcional)"><input name="description" className={input} /></Field>
+            <SubmitButton className={btnPrimary} pendingText="Criando…">Criar diretoria</SubmitButton>
+          </form>
+        </Card>
+        <Card title="Diretorias existentes" className="lg:col-span-2">
+          <ul className="divide-y divide-grid">
+            {directorates.map((d) => {
+              const linked = d._count.meetings + d._count.actions + d._count.documents + d._count.notes;
+              return (
+                <li key={d.id} className="py-3">
+                  <form action={updateDirectorate.bind(null, d.id)} className="grid items-end gap-2 sm:grid-cols-[1fr_1fr_80px_auto]">
+                    <Field label="Nome"><input name="name" defaultValue={d.name} required className={input} /></Field>
+                    <Field label="Descrição"><input name="description" defaultValue={d.description ?? ""} className={input} /></Field>
+                    <Field label="Ordem"><input name="sortOrder" type="number" defaultValue={d.sortOrder} className={input} /></Field>
+                    <div className="flex gap-2 pb-0.5">
+                      <SubmitButton className={btnSecondary} pendingText="…">Salvar</SubmitButton>
+                    </div>
+                  </form>
+                  <div className="mt-1 flex items-center justify-between text-xs text-ink-3">
+                    <span>{d._count.members} membro(s) · {d._count.meetings} reuniões · {d._count.actions} ações · {d._count.documents} documentos · {d._count.notes} anotações · endereço /diretorias/{d.slug}</span>
+                    {linked === 0 && (
+                      <form action={deleteDirectorate.bind(null, d.id)}>
+                        <ConfirmButton className="text-accent-ink hover:underline" message={`Remover a diretoria "${d.name}"?`}>Remover</ConfirmButton>
+                      </form>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
       </div>
 
       <Card title="Identidade visual" className="mt-8">
