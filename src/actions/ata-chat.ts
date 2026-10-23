@@ -57,6 +57,10 @@ export async function askAta(meetingId: string, _prev: ChatState, fd: FormData):
 
   const applied: string[] = [];
   const ops: Prisma.PrismaPromise<unknown>[] = [];
+  // nomes renomeados nesta mesma resposta (para achar o participante pelo nome novo)
+  const renamed = new Map<string, string>();
+  const findParticipant = (name: string) =>
+    meeting.participants.find((x) => norm(x.name) === norm(name) || norm(renamed.get(norm(x.name)) ?? "") === norm(name));
   const fields = { agenda: minutes.agenda, discussions: minutes.discussions, generalTopics: minutes.generalTopics, closing: minutes.closing };
   let fieldsChanged = false;
 
@@ -67,7 +71,7 @@ export async function askAta(meetingId: string, _prev: ChatState, fd: FormData):
         applied.push(`seção "${op.field}" reescrita`); break;
       case "rename_participant": {
         const matches = meeting.participants.filter((p) => norm(p.name) === norm(op.from));
-        for (const p of matches) ops.push(db.meetingParticipant.update({ where: { id: p.id }, data: { name: op.to } }));
+        for (const p of matches) { ops.push(db.meetingParticipant.update({ where: { id: p.id }, data: { name: op.to } })); renamed.set(norm(p.name), op.to); }
         for (const k of Object.keys(fields) as (keyof typeof fields)[]) { const nv = replaceName(fields[k], op.from, op.to); if (nv !== fields[k]) { fields[k] = nv; fieldsChanged = true; } }
         for (const d of minutes.decisions) { const nv = replaceName(d.text, op.from, op.to); if (nv !== d.text) ops.push(db.decision.update({ where: { id: d.id }, data: { text: nv } })); }
         for (const r of minutes.referrals) {
@@ -77,12 +81,12 @@ export async function askAta(meetingId: string, _prev: ChatState, fd: FormData):
         applied.push(`"${op.from}" → "${op.to}"`); break;
       }
       case "set_participant_role": {
-        const p = meeting.participants.find((x) => norm(x.name) === norm(op.name));
+        const p = findParticipant(op.name);
         if (p) { ops.push(db.meetingParticipant.update({ where: { id: p.id }, data: { role: op.role } })); applied.push(`papel de ${op.name}: ${op.role}`); }
         break;
       }
       case "add_participant":
-        if (!meeting.participants.some((x) => norm(x.name) === norm(op.name))) { ops.push(db.meetingParticipant.create({ data: { meetingId, name: op.name.trim(), role: op.role } })); applied.push(`participante ${op.name}`); }
+        if (!findParticipant(op.name)) { ops.push(db.meetingParticipant.create({ data: { meetingId, name: op.name.trim(), role: op.role } })); applied.push(`participante ${op.name}`); }
         break;
       case "add_decision":
         ops.push(db.decision.create({ data: { minutesId: minutes.id, text: op.text, status: op.status } })); applied.push("nova decisão"); break;
