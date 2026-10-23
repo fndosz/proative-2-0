@@ -16,7 +16,8 @@ console.log(`Usando ${found} como DATABASE_URL`);
 
 // Migrações precisam de conexão direta (sem pgbouncer): o advisory lock do Prisma não funciona no pool
 const unpooled = ["DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING"].map((k) => process.env[k]).find(Boolean);
-const migrateEnv = { ...process.env, DATABASE_URL: unpooled ?? process.env.DATABASE_URL };
+// Builds da Vercel são sequenciais; o advisory lock do Prisma fica preso em conexões do pool do Neon
+const migrateEnv = { ...process.env, DATABASE_URL: unpooled ?? process.env.DATABASE_URL, PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: "1" };
 console.log(unpooled ? "Migrações via conexão direta (unpooled)" : "Aviso: sem URL unpooled; migrando pelo pool");
 
 const steps = [
