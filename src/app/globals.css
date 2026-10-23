@@ -60,3 +60,47 @@ h1, h2, h3, h4 {
     linear-gradient(90deg, transparent 48%, rgba(255,255,255,.08) 49%, rgba(255,255,255,.08) 51%, transparent 52%);
   background-size: 56px 97px;
 }
+
+/* Tema escuro (paleta do brandbook): escolhido pelo usuário (data-theme) ou pelo sistema */
+:root[data-theme="dark"],
+:root:not([data-theme="light"]):not([data-theme="dark"]).system-dark {
+  --color-bg: #1b1f23;
+  --color-surface: #23282d;
+  --color-surface-2: #2c3237;
+  --color-ink: #f7f7f7;
+  --color-ink-2: #c9cdd0;
+  --color-ink-3: #979da2;
+  --color-line: #363c42;
+  --color-grid: #2e3439;
+  --color-accent: #f0213c;
+  --color-accent-ink: #ff5a6c;
+  --color-accent-soft: #3a1f25;
+  --color-s2: #159cb8;
+  --color-s3: #e85a33;
+  --color-s4: #4a9443;
+  --color-s5: #d9637f;
+  --color-s6: #c28400;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #1b1f23;
+    --color-surface: #23282d;
+    --color-surface-2: #2c3237;
+    --color-ink: #f7f7f7;
+    --color-ink-2: #c9cdd0;
+    --color-ink-3: #979da2;
+    --color-line: #363c42;
+    --color-grid: #2e3439;
+    --color-accent: #f0213c;
+    --color-accent-ink: #ff5a6c;
+    --color-accent-soft: #3a1f25;
+    --color-s2: #159cb8;
+    --color-s3: #e85a33;
+    --color-s4: #4a9443;
+    --color-s5: #d9637f;
+    --color-s6: #c28400;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="light"] { color-scheme: light; }

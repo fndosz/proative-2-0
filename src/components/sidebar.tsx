@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "./logo";
+import { Avatar } from "./avatar";
+import { ThemeToggle } from "./theme-toggle";
 
 type Item = { href: string; label: string; phase2?: boolean; adminOnly?: boolean };
 
@@ -19,10 +21,15 @@ const ITEMS: Item[] = [
   { href: "/admin", label: "Administração", adminOnly: true },
 ];
 
-export function Sidebar({ userName, roleLabel, isAdmin, signOutAction }: {
+export type BuildInfo = { version: string; sha: string; builtAt: string };
+
+export function Sidebar({ userName, roleLabel, isAdmin, avatarUrl, theme, build, signOutAction }: {
   userName: string;
   roleLabel: string;
   isAdmin: boolean;
+  avatarUrl: string | null;
+  theme: "light" | "dark" | "system";
+  build: BuildInfo;
   signOutAction: () => Promise<void>;
 }) {
   const pathname = usePathname();
@@ -60,13 +67,25 @@ export function Sidebar({ userName, roleLabel, isAdmin, signOutAction }: {
               </Link>
             ))}
           </nav>
-          <div className="border-t border-line px-5 py-4 text-sm">
-            <div className="truncate font-display font-semibold text-ink">{userName}</div>
-            <div className="text-xs text-ink-3">{roleLabel}</div>
-            <form action={signOutAction}>
-              <button className="mt-2 text-xs text-accent-ink hover:underline">Sair</button>
-            </form>
+          <div className="border-t border-line px-4 py-3 text-sm">
+            <Link href="/perfil" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg p-1 hover:bg-surface-2" title="Meu perfil">
+              <Avatar name={userName} src={avatarUrl} size={36} />
+              <div className="min-w-0">
+                <div className="truncate font-display font-semibold text-ink">{userName}</div>
+                <div className="text-xs text-ink-3">{roleLabel}</div>
+              </div>
+            </Link>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <ThemeToggle current={theme} />
+              <form action={signOutAction}>
+                <button className="text-xs text-accent-ink hover:underline">Sair</button>
+              </form>
+            </div>
           </div>
+          <footer className="border-t border-line px-4 py-2 text-[10px] leading-relaxed text-ink-3">
+            <div>Proative 2.0 · v{build.version} · build <span className="font-mono">{build.sha}</span></div>
+            <div>Atualizado em {build.builtAt}</div>
+          </footer>
         </div>
       </aside>
       {open && <div className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setOpen(false)} />}
