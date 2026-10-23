@@ -2,7 +2,9 @@ import { db } from "@/lib/db";
 import { requireRole } from "@/lib/authz";
 import { inviteUser, revokeInvite, updateUser } from "@/actions/admin";
 import { fmtDateTime, ROLE_LABEL } from "@/lib/format";
-import { Badge, btnPrimary, btnSecondary, Card, Empty, Field, input, PageHeader } from "@/components/ui";
+import Link from "next/link";
+import { perfMetrics, portalCounts } from "@/lib/metrics";
+import { Badge, btnPrimary, btnSecondary, Card, Empty, Field, input, KpiStrip, PageHeader } from "@/components/ui";
 
 const ROLE_HELP = {
   ADMIN: "tudo, inclusive usuários e permissões",
@@ -11,17 +13,116 @@ const ROLE_HELP = {
   LEITOR: "só leitura",
 };
 
-export default async function AdminPage() {
+const fmtBytes = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.ceil(b / 1024)} KB`);
+const ms = (v: number | null) => (v == null ? "—" : v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${v} ms`);
+
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ janela?: string }> }) {
   const me = await requireRole("ADMIN");
-  const [users, invites, directorates] = await Promise.all([
+  const hours = Number((await searchParams).janela ?? 24) || 24;
+  const [users, invites, directorates, perf, counts] = await Promise.all([
     db.user.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }], include: { directorates: true } }),
     db.invite.findMany({ where: { acceptedAt: null }, orderBy: { createdAt: "desc" } }),
     db.directorate.findMany({ orderBy: { sortOrder: "asc" } }),
+    perfMetrics(hours),
+    portalCounts(),
   ]);
+  const slowTone = (v: number | null) => (v == null ? "accent" : v > 2000 ? "critical" : v > 800 ? "accent" : "good");
 
   return (
     <>
-      <PageHeader title="Administração" subtitle="Usuários, perfis e permissões por diretoria. O acesso é pela conta Microsoft 365 do convidado." />
+      <PageHeader
+        eyebrow="Administração"
+        title="Indicadores e usuários"
+        subtitle="Desempenho e uso do portal, usuários, perfis e permissões por diretoria."
+        actions={
+          <>
+            {[24, 168, 720].map((h) => (
+              <Link key={h} href={`/admin?janela=${h}`} className={hours === h ? "rounded-lg bg-ink px-3 py-2 text-sm text-white" : btnSecondary}>
+                {h === 24 ? "24 h" : h === 168 ? "7 dias" : "30 dias"}
+              </Link>
+            ))}
+            <Link href="/admin/logs" className={btnSecondary}>Ver logs</Link>
+          </>
+        }
+      />
+
+      <div className="mb-4">
+        <KpiStrip
+          items={[
+            { label: "Requisições", value: perf.requests, detail: `${perf.users} usuário(s) ativos` },
+            { label: "Tempo médio", value: ms(perf.avgMs), detail: "resposta do servidor", tone: slowTone(perf.avgMs) },
+            { label: "P95", value: ms(perf.p95Ms), detail: "95% abaixo disto", tone: slowTone(perf.p95Ms) },
+            { label: "Erros", value: perf.errors, tone: perf.errors ? "critical" : "good", detail: perf.requests ? `${((perf.errors / perf.requests) * 100).toFixed(1)}% das requisições` : undefined },
+            { label: "Atas com IA", value: perf.ai.runs, detail: `US$ ${(perf.ai.costCents / 100).toFixed(2)} · média ${ms(perf.ai.avgMs)}` },
+          ]}
+        />
+      </div>
+
+      <div className="mb-8 grid gap-4 lg:grid-cols-3">
+        <Card title="Tempo por rota" className="lg:col-span-2">
+          {perf.routes.length === 0 ? <Empty>Sem acessos na janela.</Empty> : (
+            <table className="w-full text-[13px]">
+              <thead className="text-left font-display text-[11px] font-semibold uppercase tracking-[.06em] text-ink-3">
+                <tr><th className="py-1">Rota</th><th className="text-right">Req.</th><th className="text-right">Média</th><th className="text-right">P95</th><th className="text-right">Erros</th></tr>
+              </thead>
+              <tbody className="divide-y divide-grid">
+                {perf.routes.map((r) => (
+                  <tr key={r.path}>
+                    <td className="py-1.5 font-mono text-xs">{r.path}</td>
+                    <td className="num text-right">{r.requests}</td>
+                    <td className={`num text-right ${r.avgMs > 2000 ? "text-critical" : ""}`}>{ms(r.avgMs)}</td>
+                    <td className={`num text-right ${r.p95Ms > 2000 ? "text-critical" : ""}`}>{ms(r.p95Ms)}</td>
+                    <td className={`num text-right ${r.errors ? "text-critical" : "text-ink-3"}`}>{r.errors}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+        <div className="space-y-4">
+          <Card title="Volume do portal">
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[13px]">
+              <dt className="text-ink-3">Usuários ativos</dt><dd className="num text-right">{counts.users}</dd>
+              <dt className="text-ink-3">Reuniões</dt><dd className="num text-right">{counts.meetings}</dd>
+              <dt className="text-ink-3">Ações abertas</dt><dd className="num text-right">{counts.actions}</dd>
+              <dt className="text-ink-3">Documentos</dt><dd className="num text-right">{counts.documents}</dd>
+              <dt className="text-ink-3">Arquivos</dt><dd className="num text-right">{fmtBytes(counts.storageBytes)}</dd>
+              <dt className="text-ink-3">Eventos de auditoria</dt><dd className="num text-right">{counts.audit}</dd>
+              <dt className="text-ink-3">Registros de acesso</dt><dd className="num text-right">{counts.logs}</dd>
+            </dl>
+          </Card>
+          <Card title="Usuários mais ativos">
+            {perf.activeUsers.length === 0 ? <Empty>—</Empty> : (
+              <ul className="space-y-1 text-[13px]">
+                {perf.activeUsers.map((u) => (
+                  <li key={u.email} className="flex justify-between gap-2"><span className="truncate">{u.name ?? u.email}</span><span className="num text-ink-3">{u.requests} · {fmtDateTime(u.last)}</span></li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+        <Card title="Requisições mais lentas">
+          {perf.slowest.length === 0 ? <Empty>—</Empty> : (
+            <ul className="space-y-1 text-[13px]">
+              {perf.slowest.map((s, i) => (
+                <li key={i} className="flex justify-between gap-2"><span className="truncate font-mono text-xs">{s.path}{s.name ? ` · ${s.name}` : ""}</span><span className="num shrink-0 text-ink-3">{ms(s.durationMs)}</span></li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card title="Erros recentes" className="lg:col-span-2">
+          {perf.errorsRecent.length === 0 ? <Empty>Nenhum erro na janela.</Empty> : (
+            <ul className="space-y-1 text-[13px]">
+              {perf.errorsRecent.map((e, i) => (
+                <li key={i}><span className="text-ink-3">{fmtDateTime(e.createdAt)}</span> · <span className="font-mono text-xs">{e.path}</span> — <span className="text-critical">{e.error}</span></li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-xs text-ink-3">Métricas de navegador (Web Vitals) e analytics ficam no painel da Vercel: Speed Insights e Analytics do projeto.</p>
+        </Card>
+      </div>
+
+      <h2 className="mb-3 font-display text-lg font-semibold">Usuários e permissões</h2>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Convidar usuário" className="lg:col-span-1">

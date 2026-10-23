@@ -13,6 +13,7 @@ Next.js 15 (App Router, TypeScript) · PostgreSQL via Prisma · Auth.js com Micr
 | Biblioteca | `/biblioteca` | pronto — versões, etiquetas, vínculos, busca, documento restrito por pessoa |
 | Diretorias | `/diretorias` | pronto — metas, ações, documentos, reuniões, membros (indicadores: fase 2) |
 | Histórico | `/historico` | pronto — tabela de auditoria |
+| Indicadores e logs | `/admin`, `/admin/logs` | pronto — requisições, tempo médio/P95, erros, rotas lentas, uso da IA; log de acessos (90 dias) e auditoria |
 | Rascunho / transcrição → ata | dentro da reunião | pronto — texto livre guardado no histórico, importação de Word (.docx); **Gerar ata com IA** redige no modelo Proative (Claude Opus 5.5, `ANTHROPIC_API_KEY`) |
 | Gravações Plaud | dentro da reunião | **etapa 1**: upload do áudio bruto; speech-to-text ainda não ligado |
 | Conselho consultivo, Consultoria | `/conselho`, `/consultoria` | fase 2 (placeholder) |
@@ -38,6 +39,11 @@ Sem `BLOB_READ_WRITE_TOKEN`, os arquivos vão para `.storage/` no disco. Com `DE
 3. App no Entra ID da Proative: **Proative 2.0 - Portal** (single tenant, client ID `8c484b4a-4e74-4f5a-b027-99a2197e27e6`), redirect URI `https://proative-2-0.vercel.app/api/auth/callback/microsoft-entra-id`. Segredo "Vercel producao" expira em **20/10/2028** — gerar outro em Certificados e segredos e atualizar `AUTH_MICROSOFT_ENTRA_ID_SECRET` antes disso. Ao trocar de domínio, adicionar o novo redirect URI no app.
 4. `INITIAL_ADMIN_EMAILS` com o(s) admin(s) inicial(is).
 5. Rodar `npx prisma migrate deploy` e `npm run db:seed` contra o banco de produção.
+
+## Operação
+
+- **Logs**: `AccessLog` registra páginas, ações, logins e erros do servidor (middleware + `requireUser` + `instrumentation.ts`); `AuditEvent` registra o que cada usuário fez. Cron diário (`/api/cron/limpeza`, `vercel.json`) apaga acessos com mais de `LOG_RETENTION_DAYS` (90) dias e áudios fora do prazo; defina `CRON_SECRET` na Vercel para proteger a rota.
+- **Performance**: funções rodam em `gru1` (mesma região do Neon e do Blob), índices nas consultas principais, `loading.tsx` com esqueleto, Speed Insights e Analytics da Vercel ligados.
 
 ## Pendências conhecidas
 

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Open_Sans, Source_Sans_3 } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const body = Open_Sans({ subsets: ["latin"], weight: ["300", "400", "600"], variable: "--font-body" });
@@ -14,7 +16,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${body.variable} ${display.variable} antialiased`}>{children}</body>
+      <body className={`${body.variable} ${display.variable} antialiased`}>
+        {children}
+        <SpeedInsights />
+        <Analytics />
+      </body>
     </html>
   );
 }

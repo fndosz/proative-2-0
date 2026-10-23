@@ -62,7 +62,7 @@ export function AtaDraft({ transcript, updatedAt, aiEnabled, aiInfo, saveAction,
       </div>
       {!aiEnabled && (
         <p className="rounded-lg bg-warning/15 p-3 text-[13px] text-s6">
-          A geração automática está desligada: falta a chave <code>ANTHROPIC_API_KEY</code> nas variáveis do projeto na Vercel. O rascunho pode ser salvo normalmente.
+          A geração automática está desligada <b>neste ambiente</b> ({typeof window !== "undefined" ? window.location.host : ""}): falta a variável <code>ANTHROPIC_API_KEY</code> no servidor. Em produção (proative-2-0.vercel.app) ela está configurada; em um servidor local, coloque a chave no arquivo <code>.env</code>.
         </p>
       )}
       {generating && (

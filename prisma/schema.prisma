@@ -166,6 +166,9 @@ model Meeting {
   actions      ActionItem[]
   documents    DocumentLink[]
   recordings   Recording[]
+
+  @@index([date])
+  @@index([directorateId, archivedAt])
 }
 
 model MeetingParticipant {
@@ -293,6 +296,9 @@ model ActionItem {
 
   @@index([status])
   @@index([dueDate])
+  @@index([directorateId])
+  @@index([ownerId])
+  @@index([meetingId])
 }
 
 model ActionComment {
@@ -326,6 +332,7 @@ model Document {
   access      DocumentAccess[]
 
   @@index([title])
+  @@index([directorateId, updatedAt])
 }
 
 model DocumentVersion {
@@ -415,4 +422,34 @@ model AuditEvent {
 
   @@index([createdAt])
   @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}
+
+// ───────────── Log de acesso e performance ─────────────
+
+enum AccessKind {
+  PAGE
+  ACTION
+  API
+  AUTH
+  ERROR
+}
+
+model AccessLog {
+  id         String     @id @default(cuid())
+  userId     String?
+  kind       AccessKind
+  path       String
+  name       String?    // nome da ação/função quando conhecido
+  status     Int        @default(200)
+  durationMs Int?
+  error      String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime   @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([kind, createdAt])
+  @@index([path, createdAt])
 }

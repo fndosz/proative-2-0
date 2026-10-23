@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Provider } from "next-auth/providers";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { writeAccessLog } from "@/lib/access-log";
 
 const initialAdmins = (process.env.INITIAL_ADMIN_EMAILS ?? "")
   .split(",")
@@ -74,6 +75,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   events: {
+    async signIn({ user, account }) {
+      const u = user.email ? await db.user.findUnique({ where: { email: user.email.toLowerCase() }, select: { id: true } }) : null;
+      writeAccessLog({ userId: u?.id ?? null, kind: "AUTH", path: "/login", name: `login:${account?.provider ?? "?"}` });
+    },
+    async signOut() {
+      writeAccessLog({ kind: "AUTH", path: "/login", name: "logout" });
+    },
     // Primeiro acesso: aplica perfil e diretorias do convite
     async createUser({ user }) {
       const email = user.email!.toLowerCase();

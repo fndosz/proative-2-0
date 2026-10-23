@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import type { Prisma, Role } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "./db";
+import { logRequest } from "./access-log";
 
 export type CurrentUser = NonNullable<Awaited<ReturnType<typeof loadUser>>>;
 
@@ -22,11 +23,12 @@ export const getCurrentUser = cache(async () => {
   return user?.active ? user : null;
 });
 
-export async function requireUser() {
+export const requireUser = cache(async () => {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  await logRequest(user.id);
   return user;
-}
+});
 
 export async function requireRole(...roles: Role[]) {
   const user = await requireUser();

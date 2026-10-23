@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { canEdit, requireUser } from "@/lib/authz";
 import { generateAta } from "@/lib/ata-ai";
+import { timed } from "@/lib/access-log";
 
 export type ActionState = { ok?: string; error?: string } | null;
 
@@ -51,7 +52,7 @@ export async function generateAtaFromTranscript(meetingId: string, _prev: Action
 
   let result;
   try {
-    result = await generateAta({
+    result = await timed("minutes.ai", user.id, () => generateAta({
       title: meeting.title,
       type: meeting.type,
       date: meeting.date,
@@ -59,7 +60,7 @@ export async function generateAtaFromTranscript(meetingId: string, _prev: Action
       directorate: meeting.directorate?.name ?? null,
       participants: meeting.participants.map((p) => ({ name: p.name, role: p.role })),
       transcript,
-    });
+    }));
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return { error: "Chave da API do Claude inválida. Verifique ANTHROPIC_API_KEY na Vercel." };
     if (e instanceof Anthropic.RateLimitError) return { error: "Limite de uso da API do Claude atingido. Tente novamente em alguns minutos." };
