@@ -60,9 +60,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const email = user.email?.toLowerCase();
       if (!email) return false;
       const existing = await db.user.findUnique({ where: { email } });
-      if (existing) return existing.active;
+      if (existing) {
+        if (!existing.active) writeAccessLog({ userId: existing.id, kind: "AUTH", path: "/login", name: "login:negado", status: 403, error: `Usuário desativado: ${email}` });
+        return existing.active;
+      }
       if (initialAdmins.includes(email)) return true;
       const invite = await db.invite.findUnique({ where: { email } });
+      if (!invite) {
+        // registra o e-mail que tentou entrar, para o admin convidar o endereço certo
+        writeAccessLog({ kind: "AUTH", path: "/login", name: "login:negado", status: 403, error: `Sem convite: ${email}${user.name ? ` (${user.name})` : ""}` });
+      }
       return Boolean(invite);
     },
     async jwt({ token, user }) {

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/authz";
-import { createDirectorate, deleteDirectorate, inviteUser, revokeInvite, updateDirectorate, updateUser } from "@/actions/admin";
+import { createDirectorate, deleteDirectorate, revokeInvite, updateDirectorate, updateUser } from "@/actions/admin";
+import { InviteForm } from "@/components/invite-form";
 import { ConfirmButton, SubmitButton } from "@/components/submit-button";
 import { fmtDateTime, ROLE_LABEL } from "@/lib/format";
 import Link from "next/link";
@@ -20,12 +21,13 @@ const ms = (v: number | null) => (v == null ? "—" : v >= 1000 ? `${(v / 1000).
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ janela?: string }> }) {
   const me = await requireRole("ADMIN");
   const hours = Number((await searchParams).janela ?? 24) || 24;
-  const [users, invites, directorates, perf, counts] = await Promise.all([
+  const [users, invites, directorates, perf, counts, denied] = await Promise.all([
     db.user.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }], include: { directorates: true } }),
     db.invite.findMany({ where: { acceptedAt: null }, orderBy: { createdAt: "desc" } }),
     db.directorate.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { meetings: true, actions: true, documents: true, notes: true, members: true } } } }),
     perfMetrics(hours),
     portalCounts(),
+    db.accessLog.findMany({ where: { name: "login:negado", createdAt: { gte: new Date(Date.now() - 7 * 86400_000) } }, orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
   const slowTone = (v: number | null) => (v == null ? "accent" : v > 2000 ? "critical" : v > 800 ? "accent" : "good");
 
@@ -127,31 +129,28 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Convidar usuário" className="lg:col-span-1">
-          <form action={inviteUser} className="space-y-3">
-            <Field label="E-mail Microsoft 365"><input name="email" type="email" required className={input} placeholder="nome@proativetec.com.br" /></Field>
-            <Field label="Perfil">
-              <select name="role" className={input} defaultValue="LEITOR">
-                {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v} — {ROLE_HELP[k as keyof typeof ROLE_HELP]}</option>)}
-              </select>
-            </Field>
-            <fieldset>
-              <legend className="mb-1 text-sm font-medium text-ink">Diretorias</legend>
-              {directorates.map((d) => (
-                <label key={d.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="directorateIds" value={d.id} /> {d.name}</label>
-              ))}
-            </fieldset>
-            <button className={btnPrimary}>Convidar</button>
-            <p className="text-xs text-ink-3">O convidado entra com “Entrar com Microsoft 365”. Nenhum e-mail é enviado automaticamente — avise a pessoa.</p>
-          </form>
+          <InviteForm
+            roles={Object.entries(ROLE_LABEL).map(([k, v]) => [k, `${v} — ${ROLE_HELP[k as keyof typeof ROLE_HELP]}`])}
+            directorates={directorates.map((d) => ({ id: d.id, name: d.name }))}
+          />
         </Card>
 
         <Card title="Convites pendentes" className="lg:col-span-2">
+          {denied.length > 0 && (
+            <div className="mb-4 rounded-lg border border-warning/40 bg-warning/10 p-3 text-[13px]">
+              <div className="mb-1 font-display text-[11px] font-semibold uppercase tracking-[.08em] text-s6">Tentativas de login negadas (7 dias)</div>
+              <ul className="space-y-0.5">
+                {denied.map((d) => <li key={d.id}><span className="text-ink-3">{fmtDateTime(d.createdAt)}</span> · {d.error}</li>)}
+              </ul>
+              <p className="mt-1 text-xs text-ink-3">Se for alguém da equipe, convide exatamente o e-mail mostrado — é o que a conta Microsoft informa ao portal.</p>
+            </div>
+          )}
           {invites.length ? (
             <ul className="divide-y divide-grid text-sm">
               {invites.map((i) => (
                 <li key={i.id} className="flex items-center justify-between gap-2 py-2">
                   <span>{i.email} <Badge>{ROLE_LABEL[i.role]}</Badge> <span className="text-xs text-ink-3">· {fmtDateTime(i.createdAt)}</span></span>
-                  <form action={revokeInvite.bind(null, i.id)}><button className="text-xs text-accent-ink underline">Cancelar</button></form>
+                  <form action={revokeInvite.bind(null, i.id)}><ConfirmButton className="text-xs text-accent-ink underline" message={`Cancelar o convite de ${i.email}?`} pendingText="…">Cancelar</ConfirmButton></form>
                 </li>
               ))}
             </ul>

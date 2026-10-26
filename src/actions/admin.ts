@@ -9,25 +9,38 @@ import { ROLE_LABEL } from "@/lib/format";
 
 const roleEnum = z.enum(["ADMIN", "DIRETORIA", "CONSULTOR", "LEITOR"]);
 
-export async function inviteUser(fd: FormData) {
+export type InviteState = { ok?: string; error?: string } | null;
+
+export async function inviteUser(_prev: InviteState, fd: FormData): Promise<InviteState> {
   const admin = await requireRole("ADMIN");
-  const email = z.string().email("E-mail inválido").parse(String(fd.get("email") ?? "").trim().toLowerCase());
+  const parsed = z.string().email().safeParse(String(fd.get("email") ?? "").trim().toLowerCase());
+  if (!parsed.success) return { error: "Informe um e-mail válido." };
+  const email = parsed.data;
   const role = roleEnum.parse(fd.get("role"));
   const directorateIds = fd.getAll("directorateIds").map(String);
-  if (await db.user.findUnique({ where: { email } })) throw new Error("Esse e-mail já é usuário.");
+  const existing = await db.user.findUnique({ where: { email } });
+  if (existing) {
+    return { error: existing.active ? `${email} já é usuário do portal — ajuste o perfil dele na lista abaixo.` : `${email} já existe, mas está desativado — reative-o na lista abaixo.` };
+  }
+  const previous = await db.invite.findUnique({ where: { email } });
   await db.invite.upsert({
     where: { email },
     create: { email, role, directorateIds, invitedById: admin.id },
-    update: { role, directorateIds, invitedById: admin.id },
+    update: { role, directorateIds, invitedById: admin.id, acceptedAt: null },
   });
-  await audit({ actorId: admin.id, action: "user.invite", entityType: "Invite", entityId: email, summary: `Convidou ${email} como ${ROLE_LABEL[role]}` });
+  await audit({ actorId: admin.id, action: "user.invite", entityType: "Invite", entityId: email, summary: `${previous ? "Atualizou o convite de" : "Convidou"} ${email} como ${ROLE_LABEL[role]}` });
   revalidatePath("/admin");
+  return { ok: `${previous ? "Convite atualizado" : "Convite criado"} para ${email}. Avise a pessoa: ela entra com "Entrar com Microsoft 365" usando esse e-mail.` };
 }
 
 export async function revokeInvite(inviteId: string) {
   const admin = await requireRole("ADMIN");
-  const inv = await db.invite.delete({ where: { id: inviteId, acceptedAt: null } });
-  await audit({ actorId: admin.id, action: "user.revokeInvite", entityType: "Invite", entityId: inv.email, summary: `Cancelou o convite de ${inv.email}` });
+  const inv = await db.invite.findUnique({ where: { id: inviteId } });
+  // tolerante: um clique repetido ou um convite já aceito não derruba a página
+  const r = await db.invite.deleteMany({ where: { id: inviteId, acceptedAt: null } });
+  if (inv && r.count > 0) {
+    await audit({ actorId: admin.id, action: "user.revokeInvite", entityType: "Invite", entityId: inv.email, summary: `Cancelou o convite de ${inv.email}` });
+  }
   revalidatePath("/admin");
 }
 
