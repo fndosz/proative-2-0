@@ -30,6 +30,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     portalCounts(),
     db.accessLog.findMany({ where: { name: "login:negado", createdAt: { gte: new Date(Date.now() - 7 * 86400_000) } }, orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
+  const lastSeen = await db.accessLog.groupBy({ by: ["userId"], _max: { createdAt: true }, where: { userId: { not: null } } });
+  const lastSeenOf = (id: string) => lastSeen.find((l) => l.userId === id)?._max.createdAt ?? null;
   const myAccount = await db.account.findFirst({ where: { userId: me.id, provider: "microsoft-entra-id" }, select: { scope: true } });
   const mailboxOk = Boolean(myAccount?.scope?.includes("Mail.Send"));
   const resendOk = Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM);
@@ -201,6 +203,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <Badge>{ROLE_LABEL[u.role]}</Badge>
               {!u.active && <Badge className="bg-accent-soft text-accent-ink">desativado</Badge>}
               {u.id === me.id && <Badge className="bg-s2/12 text-s2">você</Badge>}
+              <span className="ml-auto flex items-center gap-3 text-xs text-ink-3">
+                <span>{lastSeenOf(u.id) ? `último acesso ${fmtDateTime(lastSeenOf(u.id))}` : "nunca acessou"}</span>
+                <Link href={`/admin/logs?usuario=${u.id}`} className="text-accent-ink hover:underline">Ver atividade</Link>
+                <Link href={`/admin/logs?aba=auditoria&usuario=${u.id}`} className="text-accent-ink hover:underline">Ver alterações</Link>
+              </span>
             </summary>
             <form action={updateUser.bind(null, u.id)} className="mt-4 grid gap-4 md:grid-cols-3">
               <Field label="Perfil">
