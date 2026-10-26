@@ -5,7 +5,9 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { requireRole } from "@/lib/authz";
+import { signIn } from "@/auth";
 import { ROLE_LABEL } from "@/lib/format";
+import { buildInviteEmail, MAIL_CC, sendMail } from "@/lib/mail";
 
 const roleEnum = z.enum(["ADMIN", "DIRETORIA", "CONSULTOR", "LEITOR"]);
 
@@ -23,14 +25,35 @@ export async function inviteUser(_prev: InviteState, fd: FormData): Promise<Invi
     return { error: existing.active ? `${email} já é usuário do portal — ajuste o perfil dele na lista abaixo.` : `${email} já existe, mas está desativado — reative-o na lista abaixo.` };
   }
   const previous = await db.invite.findUnique({ where: { email } });
-  await db.invite.upsert({
+  const invite = await db.invite.upsert({
     where: { email },
     create: { email, role, directorateIds, invitedById: admin.id },
     update: { role, directorateIds, invitedById: admin.id, acceptedAt: null },
   });
   await audit({ actorId: admin.id, action: "user.invite", entityType: "Invite", entityId: email, summary: `${previous ? "Atualizou o convite de" : "Convidou"} ${email} como ${ROLE_LABEL[role]}` });
+  const mail = await deliverInvite(invite.id, admin.id);
   revalidatePath("/admin");
-  return { ok: `${previous ? "Convite atualizado" : "Convite criado"} para ${email}. Avise a pessoa: ela entra com "Entrar com Microsoft 365" usando esse e-mail.` };
+  const base = `${previous ? "Convite atualizado" : "Convite criado"} para ${email}.`;
+  return mail.sent
+    ? { ok: `${base} E-mail de acesso enviado (cópia para ${MAIL_CC.join(", ")}).` }
+    : { ok: `${base} O e-mail NÃO foi enviado automaticamente (${mail.reason}). Use "Abrir no Outlook" na lista de convites.` };
+}
+
+/** Monta e envia o e-mail de convite; registra o resultado no convite e na auditoria. */
+async function deliverInvite(inviteId: string, senderId: string) {
+  const inv = await db.invite.findUniqueOrThrow({ where: { id: inviteId }, include: { invitedBy: true } });
+  const dirs = await db.directorate.findMany({ where: { id: { in: inv.directorateIds } }, select: { name: true } });
+  const mail = buildInviteEmail({ email: inv.email, role: inv.role, directorates: dirs.map((d) => d.name), invitedBy: inv.invitedBy?.name ?? inv.invitedBy?.email ?? "Proative" });
+  const r = await sendMail(mail, senderId);
+  await db.invite.update({ where: { id: inviteId }, data: r.sent ? { emailSentAt: new Date(), emailError: null } : { emailError: r.reason.slice(0, 300) } });
+  await audit({ actorId: senderId, action: r.sent ? "user.inviteMail" : "user.inviteMailFailed", entityType: "Invite", entityId: inv.email, summary: r.sent ? `E-mail de convite enviado a ${inv.email} (cc ${MAIL_CC.join(", ")})` : `Falha ao enviar e-mail de convite a ${inv.email}: ${r.reason.slice(0, 120)}` });
+  return r;
+}
+
+export async function resendInvite(inviteId: string) {
+  const admin = await requireRole("ADMIN");
+  await deliverInvite(inviteId, admin.id);
+  revalidatePath("/admin");
 }
 
 export async function revokeInvite(inviteId: string) {
@@ -108,4 +131,11 @@ export async function deleteDirectorate(directorateId: string) {
   await db.directorate.delete({ where: { id: directorateId } });
   await audit({ actorId: admin.id, action: "directorate.delete", entityType: "Directorate", entityId: directorateId, summary: `Removeu a diretoria "${d.name}"` });
   revalidatePath("/", "layout");
+}
+
+
+/** Pede à Microsoft a permissão Mail.Send para a conta do administrador logado (envio de convites pela caixa dele). */
+export async function connectMailbox() {
+  await requireRole("ADMIN");
+  await signIn("microsoft-entra-id", { redirectTo: "/admin" }, { scope: "openid profile email offline_access User.Read Mail.Send", prompt: "consent" });
 }

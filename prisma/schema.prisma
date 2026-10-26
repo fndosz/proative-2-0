@@ -92,6 +92,8 @@ model Invite {
   invitedById   String?
   invitedBy     User?     @relation("InvitedBy", fields: [invitedById], references: [id])
   acceptedAt    DateTime?
+  emailSentAt   DateTime? // último e-mail de convite enviado com sucesso
+  emailError    String?   // motivo do último envio que falhou
   createdAt     DateTime  @default(now())
 }
 

@@ -47,6 +47,10 @@ Sem `BLOB_READ_WRITE_TOKEN`, os arquivos vão para `.storage/` no disco. Com `DE
 - **Logs**: `AccessLog` registra páginas, ações, logins e erros do servidor (middleware + `requireUser` + `instrumentation.ts`); `AuditEvent` registra o que cada usuário fez. Cron diário (`/api/cron/limpeza`, `vercel.json`) apaga acessos com mais de `LOG_RETENTION_DAYS` (90) dias e áudios fora do prazo; defina `CRON_SECRET` na Vercel para proteger a rota.
 - **Performance**: funções rodam em `gru1` (mesma região do Neon e do Blob), índices nas consultas principais, `loading.tsx` com esqueleto, Speed Insights e Analytics da Vercel ligados.
 
+## E-mail de convite
+
+Todo convite monta um e-mail (modelo em `src/lib/mail.ts`) com cópia para `MAIL_CC` (padrão fernando.souza@proativetec.com.br). Envio, por ordem: Resend (`RESEND_API_KEY` + `MAIL_FROM`, domínio verificado) → caixa Microsoft 365 do administrador (botão "Autorizar envio pela minha caixa" em Administração, permissão delegada `Mail.Send`) → fallback "Abrir no Outlook" com o e-mail pronto. Status e botão "Reenviar" em cada convite pendente.
+
 ## Pendências conhecidas
 
 - **Uploads grandes**: na Vercel o corpo de uma requisição é limitado a ~4,5 MB. Áudios do Plaud e documentos maiores precisam de upload direto do navegador ao Blob (`@vercel/blob/client`) — próximo passo.

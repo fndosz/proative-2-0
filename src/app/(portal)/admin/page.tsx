@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/authz";
-import { createDirectorate, deleteDirectorate, revokeInvite, updateDirectorate, updateUser } from "@/actions/admin";
+import { connectMailbox, createDirectorate, deleteDirectorate, resendInvite, revokeInvite, updateDirectorate, updateUser } from "@/actions/admin";
+import { buildInviteEmail, mailtoLink } from "@/lib/mail";
 import { InviteForm } from "@/components/invite-form";
 import { ConfirmButton, SubmitButton } from "@/components/submit-button";
 import { fmtDateTime, ROLE_LABEL } from "@/lib/format";
@@ -29,6 +30,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     portalCounts(),
     db.accessLog.findMany({ where: { name: "login:negado", createdAt: { gte: new Date(Date.now() - 7 * 86400_000) } }, orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
+  const myAccount = await db.account.findFirst({ where: { userId: me.id, provider: "microsoft-entra-id" }, select: { scope: true } });
+  const mailboxOk = Boolean(myAccount?.scope?.includes("Mail.Send"));
+  const resendOk = Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM);
   const slowTone = (v: number | null) => (v == null ? "accent" : v > 2000 ? "critical" : v > 800 ? "accent" : "good");
 
   return (
@@ -136,6 +140,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </Card>
 
         <Card title="Convites pendentes" className="lg:col-span-2">
+          <div className={`mb-4 rounded-lg p-3 text-[13px] ${resendOk || mailboxOk ? "bg-s4/10 text-s4" : "bg-warning/10 text-ink-2"}`}>
+            <div className="font-display text-[11px] font-semibold uppercase tracking-[.08em]">E-mail de convite</div>
+            {resendOk ? (
+              <p>Envio automático pelo serviço de e-mail do portal (Resend), com cópia para {process.env.MAIL_CC ?? "fernando.souza@proativetec.com.br"}.</p>
+            ) : mailboxOk ? (
+              <p>Envio automático pela sua caixa Microsoft 365 ({me.email}), com cópia para {process.env.MAIL_CC ?? "fernando.souza@proativetec.com.br"}.</p>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p>Os convites ainda <b>não</b> saem automaticamente. Autorize o envio pela sua caixa Microsoft 365 (permissão Mail.Send) ou use “Abrir no Outlook” em cada convite.</p>
+                <form action={connectMailbox}><SubmitButton className={btnSecondary} pendingText="Abrindo a Microsoft…">Autorizar envio pela minha caixa</SubmitButton></form>
+              </div>
+            )}
+          </div>
           {denied.length > 0 && (
             <div className="mb-4 rounded-lg border border-warning/40 bg-warning/10 p-3 text-[13px]">
               <div className="mb-1 font-display text-[11px] font-semibold uppercase tracking-[.08em] text-s6">Tentativas de login negadas (7 dias)</div>
@@ -147,12 +164,28 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           )}
           {invites.length ? (
             <ul className="divide-y divide-grid text-sm">
-              {invites.map((i) => (
-                <li key={i.id} className="flex items-center justify-between gap-2 py-2">
-                  <span>{i.email} <Badge>{ROLE_LABEL[i.role]}</Badge> <span className="text-xs text-ink-3">· {fmtDateTime(i.createdAt)}</span></span>
-                  <form action={revokeInvite.bind(null, i.id)}><ConfirmButton className="text-xs text-accent-ink underline" message={`Cancelar o convite de ${i.email}?`} pendingText="…">Cancelar</ConfirmButton></form>
-                </li>
-              ))}
+              {invites.map((i) => {
+                const mail = buildInviteEmail({ email: i.email, role: i.role, directorates: directorates.filter((d) => i.directorateIds.includes(d.id)).map((d) => d.name), invitedBy: me.name ?? me.email });
+                return (
+                  <li key={i.id} className="py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{i.email} <Badge>{ROLE_LABEL[i.role]}</Badge> <span className="text-xs text-ink-3">· {fmtDateTime(i.createdAt)}</span></span>
+                      <div className="flex items-center gap-3 whitespace-nowrap text-xs">
+                        <a href={mailtoLink(mail)} className="text-ink-2 underline hover:text-ink" title="Abre o Outlook com o convite pronto (destinatário, cópia, assunto e texto)">Abrir no Outlook</a>
+                        <form action={resendInvite.bind(null, i.id)}><SubmitButton className="text-ink-2 underline hover:text-ink" pendingText="Enviando…">Reenviar e-mail</SubmitButton></form>
+                        <form action={revokeInvite.bind(null, i.id)}><ConfirmButton className="text-accent-ink underline" message={`Cancelar o convite de ${i.email}?`} pendingText="…">Cancelar</ConfirmButton></form>
+                      </div>
+                    </div>
+                    <div className="mt-0.5 text-xs">
+                      {i.emailSentAt ? (
+                        <span className="text-s4">E-mail enviado em {fmtDateTime(i.emailSentAt)}</span>
+                      ) : (
+                        <span className="text-s6">E-mail não enviado{i.emailError ? ` — ${i.emailError}` : ""}</span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : <Empty>Nenhum convite pendente.</Empty>}
         </Card>

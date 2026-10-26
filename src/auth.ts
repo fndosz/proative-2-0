@@ -62,6 +62,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const existing = await db.user.findUnique({ where: { email } });
       if (existing) {
         if (!existing.active) writeAccessLog({ userId: existing.id, kind: "AUTH", path: "/login", name: "login:negado", status: 403, error: `Usuário desativado: ${email}` });
+        // mantém os tokens da conta Microsoft atualizados (o adapter só grava no primeiro login);
+        // necessário para enviar convites pela caixa do administrador (Mail.Send)
+        if (account?.provider && account.providerAccountId && account.access_token) {
+          await db.account.updateMany({
+            where: { provider: account.provider, providerAccountId: account.providerAccountId },
+            data: {
+              access_token: account.access_token,
+              expires_at: account.expires_at ?? null,
+              scope: account.scope ?? null,
+              ...(account.refresh_token ? { refresh_token: account.refresh_token } : {}),
+            },
+          });
+        }
         return existing.active;
       }
       if (initialAdmins.includes(email)) return true;
